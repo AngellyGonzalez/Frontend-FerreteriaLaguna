@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, FlatList, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
@@ -19,10 +19,7 @@ const Catalogo = ({ navigation }) => {
 
   const obtenerCategorias = async () => {
     try {
-      // Corregido a minúscula tal como lo tienes en Firebase
       const querySnapshot = await getDocs(collection(db, "categorias")); 
-      console.log("Total categorías encontradas:", querySnapshot.size);
-      
       const datos = [
         {
           id: "todos",
@@ -43,10 +40,7 @@ const Catalogo = ({ navigation }) => {
 
   const obtenerProductos = async () => {
     try {
-      // Corregido a minúscula tal como lo tienes en Firebase
       const querySnapshot = await getDocs(collection(db, "productos")); 
-      console.log("Total productos encontrados:", querySnapshot.size);
-      
       const datos = [];
       querySnapshot.forEach((doc) => {
         datos.push({ id: doc.id, ...doc.data() });
@@ -57,10 +51,8 @@ const Catalogo = ({ navigation }) => {
     }
   };
 
- const obtenerProductosPorCategoria = async (idCategoriaNumerico) => {
+  const obtenerProductosPorCategoria = async (idCategoriaNumerico) => {
     try {
-      console.log("Filtrando productos por ID numérico de categoría:", idCategoriaNumerico);
-      
       const consulta = query(
         collection(db, "productos"), 
         where("categoriaId", "==", idCategoriaNumerico) 
@@ -72,7 +64,6 @@ const Catalogo = ({ navigation }) => {
         datos.push({ id: documento.id, ...documento.data() });
       });
 
-      console.log("Productos encontrados:", datos.length);
       setProductos(datos);
     } catch (error) {
       console.error("Error obteniendo productos por categoría:", error);
@@ -100,7 +91,6 @@ const Catalogo = ({ navigation }) => {
       </View>
 
       {/* Categorías Horizontal */}
-     {/* Categorías Horizontal */}
       <Text style={styles.subtituloSeccion}>Categorías</Text>
       <ScrollView
         horizontal
@@ -121,6 +111,7 @@ const Catalogo = ({ navigation }) => {
           />
         ))}
       </ScrollView>
+
       <View style={styles.linea} />
       <Text style={styles.titulo}>Productos Destacados</Text>
 
@@ -129,25 +120,33 @@ const Catalogo = ({ navigation }) => {
         <FlatList
           data={productosFiltrados}
           scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.productWrapper}>
-              <Producto
-                nombre={item.nombre || item.Nombre}
-                precio={`${item.precio || item.Precio}`}
-                categoria={item.stock !== undefined ? `Stock: ${item.stock}` : ''}
-                imagen={item.imagen || item.Imagen || 'https://via.placeholder.com/150'}
-                onPress={() => navigation.navigate('Detalle', { 
-                  nombre: item.nombre || item.Nombre, 
-                  precio: item.precio || item.Precio, 
-                  stock: item.stock || item.Stock,
-                  imagen: item.imagen || item.Imagen || 'https://via.placeholder.com/150',
-                  descripcion: item.descripcion || item.Descripcion || 'Sin descripción disponible.'
-                })}
-              />
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const nombreProd = item.nombre || item.Nombre;
+            const precioProd = `${item.precio || item.Precio}`;
+            const stockProd = item.stock !== undefined ? `Stock: ${item.stock}` : '';
+            const imagenProd = item.imagen || item.Imagen || 'https://via.placeholder.com/150';
+            const descProd = item.descripcion || item.Descripcion || 'Sin descripción disponible.';
+
+            return (
+              <View style={styles.productWrapper}>
+                <Producto
+                  nombre={nombreProd}
+                  precio={precioProd}
+                  categoria={stockProd}
+                  imagen={imagenProd}
+                />
+                
+                {/* Botón de ver detalle integrado de forma ordenada */}
+                <TouchableOpacity 
+  style={styles.botonVerDetalle} 
+  onPress={() => navigation.navigate('Detalle', { producto: item })}
+>
+  <Text style={styles.textoBotonDetalle}>Ver detalle</Text>
+</TouchableOpacity>
+              </View>
+            );
+          }}
           keyExtractor={(item) => item.id.toString()}
-          horizontal={false}
           numColumns={2}
           columnWrapperStyle={styles.columnas}
         />
@@ -158,63 +157,78 @@ const Catalogo = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   contenedor: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 15,
-    paddingTop: 10,
+    flex: 1, 
+    backgroundColor: '#F5F7FA', 
+    padding: 16
   },
   buscador: {
-    height: 50,
-    backgroundColor: "#F5F4FC",
-    borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    marginTop: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#E1E1E8",
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#FFF', 
+    borderRadius: 10, 
+    paddingHorizontal: 12, 
+    paddingVertical: 10, 
+    marginBottom: 15, 
+    borderWidth: 1, 
+    borderColor: '#E0E0E0'
   },
   input: {
-    flex: 1,
-    fontSize: 14,
-    marginLeft: 8,
-    color: "#333",
+    flex: 1, 
+    marginLeft: 8, 
+    fontSize: 14, 
+    color: '#333'
   },
   subtituloSeccion: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#222",
-    marginBottom: 8,
-    marginTop: 5,
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginBottom: 10
   },
   categorias: {
-    marginBottom: 15,
+    marginBottom: 15
   },
   linea: {
-    height: 1,
-    backgroundColor: "#E1E1E8",
-    marginHorizontal: -15,
-    marginBottom: 5,
+    height: 1, 
+    backgroundColor: '#E0E0E0', 
+    marginVertical: 10
   },
   titulo: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#222",
-    marginTop: 10,
-    marginBottom: 15,
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: '#222', 
+    marginBottom: 15
   },
   productosContainer: {
-    flex: 1,
-    paddingBottom: 20,
+    paddingBottom: 20
   },
   columnas: {
     justifyContent: 'space-between',
+    marginBottom: 15
   },
   productWrapper: {
-    width: '48%',
-    marginBottom: 15,
+    width: '48%', 
+    backgroundColor: '#FFF', 
+    borderRadius: 12, 
+    padding: 10, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 1 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 2, 
+    elevation: 2,
+    justifyContent: 'space-between'
   },
+  botonVerDetalle: {
+    backgroundColor: '#3F51B5', 
+    borderRadius: 8, 
+    paddingVertical: 10, 
+    alignItems: 'center', 
+    marginTop: 10
+  },
+  textoBotonDetalle: {
+    color: '#FFF', 
+    fontWeight: 'bold', 
+    fontSize: 13
+  }
 });
 
 export default Catalogo;

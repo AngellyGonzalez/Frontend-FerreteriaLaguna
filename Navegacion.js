@@ -3,13 +3,14 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack"; 
 import { Ionicons } from "@expo/vector-icons"; 
 
-// <<< AGREGAR: Importar tu pantalla de Registro (ajusta la ruta según donde la tengas guardada)
-import Registro from "./screens/Registro"; 
 
+import Registro from "./screens/Registro"; 
+import Login from './screens/Login'; // (Si ya moviste Login a screens, recuerda actualizar la ruta a './screens/Login')
 import Catalogo from "./screens/Catalogo"; 
 import DetalleProducto from "./screens/DetalleProducto"; 
-import AcercaDe from "./screens/AcercaDe"; 
-import Favoritos from "./screens/Favoritos"; 
+import Carrito from './screens/Carrito';
+import Pedidos from './screens/Pedidos';
+import Perfil from './screens/Perfil';
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createNativeStackNavigator();
@@ -32,40 +33,60 @@ function CatalogoStack() {
   ); 
 } 
 
-// <<< AGREGAR: Envolver tus Tabs en una función llamada HomeTabs para ordenarlas dentro del Stack principal
+// TABS PRINCIPALES (Catálogo, Carrito, Pedidos, Perfil)
 function HomeTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      {/* TAB CATÁLOGO */} 
+    <Tab.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        tabBarActiveTintColor: '#1E88E5', 
+        tabBarInactiveTintColor: '#888',
+      }}
+    >
+      {/* 1. TAB CATÁLOGO */} 
       <Tab.Screen 
         name="CatalogoTab" 
         component={CatalogoStack} 
         options={{ 
           title: 'Catálogo', 
           tabBarIcon: ({ color, size }) => ( 
-            <Ionicons name="albums-outline" size={size} color={color} /> 
+            <Ionicons name="grid-outline" size={size} color={color} /> 
           ), 
         }} 
       /> 
-      {/* TAB ACERCA DE */} 
+
+      {/* 2. TAB CARRITO */} 
       <Tab.Screen 
-        name="AcercaDeTab"
-        component={AcercaDe} 
+        name="CarritoTab" 
+        component={Carrito} 
         options={{ 
-          title: 'Acerca De', 
+          title: 'Carrito', 
           tabBarIcon: ({ color, size }) => ( 
-            <Ionicons name="information-circle-outline" size={size} color={color} /> 
+            <Ionicons name="cart-outline" size={size} color={color} /> 
           ), 
         }} 
       /> 
-      {/* TAB FAVORITOS */} 
+
+      {/* 3. TAB PEDIDOS */} 
       <Tab.Screen 
-        name="FavoritosTab" 
-        component={Favoritos} 
+        name="PedidosTab" 
+        component={Pedidos} 
         options={{ 
-          title: 'Favoritos', 
+          title: 'Pedidos', 
           tabBarIcon: ({ color, size }) => ( 
-            <Ionicons name="heart-outline" size={size} color={color} /> 
+            <Ionicons name="clipboard-outline" size={size} color={color} /> 
+          ), 
+        }} 
+      /> 
+
+      {/* 4. TAB PERFIL */} 
+      <Tab.Screen 
+        name="PerfilTab" 
+        component={Perfil} 
+        options={{ 
+          title: 'Perfil', 
+          tabBarIcon: ({ color, size }) => ( 
+            <Ionicons name="person-outline" size={size} color={color} /> 
           ), 
         }} 
       /> 
@@ -77,13 +98,15 @@ function HomeTabs() {
 export default function Navegacion() { 
   return ( 
     <NavigationContainer> 
-      {/* <<< MODIFICAR: Cambiamos el contenedor raíz para que sea un Stack con "Registro" como pantalla inicial */}
-      <Stack.Navigator initialRouteName="Registro" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
         
-        {/* <<< AGREGAR: La pantalla de Registro para que sea lo primero que vea el usuario */}
-        <Stack.Screen name="Registro" component={Registro} />
+        {/* Pantalla de Iniciar Sesión */}
+        <Stack.Screen name="Login" component={Login} />
+
+        {/* Pantalla de Registro */}
+        <Stack.Screen name="Registro" component={Registro} options={{ headerShown: true, title: "Crear Cuenta" }} />
         
-        {/* <<< AGREGAR: El grupo de pestañas del catálogo al que se saltará después */}
+        {/* Pantalla Principal con Pestañas */}
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
       </Stack.Navigator> 

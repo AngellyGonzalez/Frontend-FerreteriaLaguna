@@ -1,69 +1,78 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,Alert,ActivityIndicator} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { db } from '../firebase/config';
-import { collection, addDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
+import { doc, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 export default function Registro({ navigation }) {
- 
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [cedula, setCedula] = useState('');
   const [telefono, setTelefono] = useState('');
-  
+  const [correo, setCorreo] = useState('');
+  const [password, setPassword] = useState('');
+  const [verPassword, setVerPassword] = useState(false);
   
   const [cargando, setCargando] = useState(false);
 
   const handleRegistrar = async () => {
-
-    if (!nombres || !apellidos || !cedula || !telefono) {
-      Alert.alert('Error', 'Por favor complete todos los campos');
+    if (!nombres || !apellidos || !cedula || !telefono || !correo || !password) {
+      Alert.alert('Error', 'Por favor complete todos los campos, incluyendo correo y contraseña.');
       return;
     }
 
     setCargando(true);
 
     try {
-      
+      // 1. Creamos el usuario en Firebase Authentication (para que funcione el Login)
+      const userCredential = await createUserWithEmailAndPassword(auth, correo.trim(), password);
+      const user = userCredential.user;
+
+      // 2. Guardamos sus datos personales en tu colección existente llamada "cliente" (en minúscula)
       const nuevoCliente = {
         Nombres: nombres.trim(),
         Apellidos: apellidos.trim(),
         Cedula: cedula.trim(),
         telefono: telefono.trim(),
+        correo: correo.trim(),
       };
 
-
-      await addDoc(collection(db, "Clientes"), nuevoCliente);
+      // Usamos el UID de Firebase Auth como ID del documento para asociarlo directamente
+      await setDoc(doc(db, "cliente", user.uid), nuevoCliente);
 
       Alert.alert(
         '¡Bienvenido a Ferretería Laguna!', 
-        'Tu registro se ha completado con éxito. ¡Ya puedes explorar nuestro catálogo!',
+        'Tu cuenta y registro se han completado con éxito. ¡Ya puedes explorar nuestro catálogo!',
         [
           { 
             text: 'Ver Catálogo', 
             onPress: () => {
               navigation.replace('HomeTabs');
-
-              setNombres('');
-              setApellidos('');
-              setCedula('');
-              setTelefono('');
             } 
           }
         ]
       );
 
     } catch (error) {
-      console.error("Error al guardar en Firestore: ", error);
-      Alert.alert('Error', 'No se pudo registrar el cliente en la base de datos. Verifica tu conexión.');
+      console.error("Error al registrar: ", error);
+      let mensajeError = 'No se pudo completar el registro.';
+      if (error.code === 'auth/email-already-in-use') {
+        mensajeError = 'Este correo electrónico ya está registrado.';
+      } else if (error.code === 'auth/weak-password') {
+        mensajeError = 'La contraseña debe tener al menos 6 caracteres.';
+      } else if (error.code === 'auth/invalid-email') {
+        mensajeError = 'El formato del correo electrónico no es válido.';
+      }
+      Alert.alert('Error', mensajeError);
     } finally {
       setCargando(false);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       {/* Cabecera */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation && navigation.goBack()}>
@@ -124,6 +133,40 @@ export default function Registro({ navigation }) {
           value={telefono}
           onChangeText={setTelefono}
         />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Correo electrónico</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ej. correo@domain.com"
+          placeholderTextColor="#A0A0A0"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={correo}
+          onChangeText={setCorreo}
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Contraseña</Text>
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Mínimo 6 caracteres"
+            placeholderTextColor="#A0A0A0"
+            secureTextEntry={!verPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
+            <Ionicons 
+              name={verPassword ? "eye-outline" : "eye-off-outline"} 
+              size={20} 
+              color="#888" 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Botón de Registro */}
@@ -192,6 +235,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 48,
+    fontSize: 14,
+    color: '#333',
+  },
+  passwordContainer: {
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  passwordInput: {
+    flex: 1,
     fontSize: 14,
     color: '#333',
   },
