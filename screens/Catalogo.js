@@ -136,7 +136,7 @@ const Catalogo = ({ navigation }) => {
                   imagen={imagenProd}
                 />
                 
-                {/* Botón de ver detalle integrado de forma ordenada */}
+               
                 <TouchableOpacity 
   style={styles.botonVerDetalle} 
   onPress={() => navigation.navigate('Detalle', { producto: item })}

@@ -11,10 +11,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DetalleProducto({ route, navigation }) {
-  // Recibimos el producto enviado desde el catálogo
+  
   const { producto } = route.params || {};
 
-  // Estado para el contador de cantidad
+
   const [cantidad, setCantidad] = useState(1);
 
   const incrementar = () => setCantidad(cantidad + 1);
@@ -56,7 +56,7 @@ export default function DetalleProducto({ route, navigation }) {
 
           <Text style={styles.productName}>{producto?.nombre || 'Nombre del producto'}</Text>
 
-          {/* CALIFICACIÓN DE ESTRELLAS (Opcional simulado) */}
+          {/* CALIFICACIÓN DE ESTRELLAS Opcional simulado */}
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color="#FFB300" />
             <Ionicons name="star" size={16} color="#FFB300" />
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 90, // Espacio para que el botón inferior no tape el contenido
+    paddingBottom: 90, 
   },
   imageContainer: {
     backgroundColor: '#FFF',

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 
 import Registro from "./screens/Registro"; 
-import Login from './screens/Login'; // (Si ya moviste Login a screens, recuerda actualizar la ruta a './screens/Login')
+import Login from './screens/Login'; 
 import Catalogo from "./screens/Catalogo"; 
 import DetalleProducto from "./screens/DetalleProducto"; 
 import Carrito from './screens/Carrito';
@@ -43,7 +43,7 @@ function HomeTabs() {
         tabBarInactiveTintColor: '#888',
       }}
     >
-      {/* 1. TAB CATÁLOGO */} 
+      {/* TAB CATÁLOGO */} 
       <Tab.Screen 
         name="CatalogoTab" 
         component={CatalogoStack} 
@@ -55,7 +55,7 @@ function HomeTabs() {
         }} 
       /> 
 
-      {/* 2. TAB CARRITO */} 
+      {/*  TAB CARRITO */} 
       <Tab.Screen 
         name="CarritoTab" 
         component={Carrito} 
@@ -67,7 +67,7 @@ function HomeTabs() {
         }} 
       /> 
 
-      {/* 3. TAB PEDIDOS */} 
+      {/* TAB PEDIDOS */} 
       <Tab.Screen 
         name="PedidosTab" 
         component={Pedidos} 
@@ -79,7 +79,7 @@ function HomeTabs() {
         }} 
       /> 
 
-      {/* 4. TAB PERFIL */} 
+      {/* TAB PERFIL */} 
       <Tab.Screen 
         name="PerfilTab" 
         component={Perfil} 

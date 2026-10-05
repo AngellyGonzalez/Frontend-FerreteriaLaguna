@@ -39,7 +39,7 @@ const Login = ({ navigation }) => {
           {/* Logo de Ferretería Laguna */}
           <View style={styles.headerContainer}>
             <Image 
-              source={require('../assets/logo (3).png')} // Asegúrate de guardar tu logo en la carpeta assets con este nombre
+              source={require('../assets/logo (3).png')} 
               style={styles.logo}
               resizeMode="contain"
             />

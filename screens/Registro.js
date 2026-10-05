@@ -26,11 +26,10 @@ export default function Registro({ navigation }) {
     setCargando(true);
 
     try {
-      // 1. Creamos el usuario en Firebase Authentication (para que funcione el Login)
+
       const userCredential = await createUserWithEmailAndPassword(auth, correo.trim(), password);
       const user = userCredential.user;
 
-      // 2. Guardamos sus datos personales en tu colección existente llamada "cliente" (en minúscula)
       const nuevoCliente = {
         Nombres: nombres.trim(),
         Apellidos: apellidos.trim(),
@@ -39,7 +38,6 @@ export default function Registro({ navigation }) {
         correo: correo.trim(),
       };
 
-      // Usamos el UID de Firebase Auth como ID del documento para asociarlo directamente
       await setDoc(doc(db, "cliente", user.uid), nuevoCliente);
 
       Alert.alert(
