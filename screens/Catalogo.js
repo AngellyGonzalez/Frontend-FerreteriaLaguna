@@ -53,9 +53,11 @@ const Catalogo = ({ navigation }) => {
 
   const obtenerProductosPorCategoria = async (idCategoriaNumerico) => {
     try {
+      console.log("Filtrando productos por ID numérico de categoría:", idCategoriaNumerico);
+      
       const consulta = query(
         collection(db, "productos"), 
-        where("categoriaId", "==", idCategoriaNumerico) 
+        where("categoria_id", "==", idCategoriaNumerico) 
       );
       
       const consultaSnapshot = await getDocs(consulta);
@@ -64,12 +66,12 @@ const Catalogo = ({ navigation }) => {
         datos.push({ id: documento.id, ...documento.data() });
       });
 
+      console.log("Productos encontrados:", datos.length);
       setProductos(datos);
     } catch (error) {
       console.error("Error obteniendo productos por categoría:", error);
     }
   };
-
   // Filtrado de productos basado en el buscador
   const productosFiltrados = productos.filter((producto) => {
     const nombreProducto = producto.nombre || producto.Nombre || "";
@@ -122,7 +124,7 @@ const Catalogo = ({ navigation }) => {
           scrollEnabled={false}
           renderItem={({ item }) => {
             const nombreProd = item.nombre || item.Nombre;
-            const precioProd = `${item.precio || item.Precio}`;
+           const precioProd = `C$ ${item.precio || item.Precio}`;
             const stockProd = item.stock !== undefined ? `Stock: ${item.stock}` : '';
             const imagenProd = item.imagen || item.Imagen || 'https://via.placeholder.com/150';
             const descProd = item.descripcion || item.Descripcion || 'Sin descripción disponible.';
@@ -137,9 +139,9 @@ const Catalogo = ({ navigation }) => {
                 />
                 
                
-                <TouchableOpacity 
+    <TouchableOpacity 
   style={styles.botonVerDetalle} 
-  onPress={() => navigation.navigate('Detalle', { producto: item })}
+  onPress={() => navigation.navigate('DetalleProducto', { producto: item })} // <--- AQUÍ VA
 >
   <Text style={styles.textoBotonDetalle}>Ver detalle</Text>
 </TouchableOpacity>

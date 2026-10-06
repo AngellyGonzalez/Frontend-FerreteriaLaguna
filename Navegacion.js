@@ -25,13 +25,13 @@ function CatalogoStack() {
         options={{ title: "Catálogo" }} 
       /> 
       <Stack.Screen 
-        name="Detalle" 
+        name="DetalleProducto" // <--- Cámbialo aquí para que coincida
         component={DetalleProducto} 
         options={{ title: "Detalle del producto" }} 
       /> 
     </Stack.Navigator> 
   ); 
-} 
+}
 
 // TABS PRINCIPALES (Catálogo, Carrito, Pedidos, Perfil)
 function HomeTabs() {

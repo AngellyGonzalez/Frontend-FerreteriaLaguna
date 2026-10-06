@@ -1,19 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  Image, 
-  ScrollView, 
-  TouchableOpacity, 
-  Alert 
-} from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DetalleProducto({ route, navigation }) {
-  
   const { producto } = route.params || {};
-
 
   const [cantidad, setCantidad] = useState(1);
 
@@ -24,18 +14,30 @@ export default function DetalleProducto({ route, navigation }) {
     }
   };
 
-  const agregarAlCarrito = () => {
-    Alert.alert(
-      "¡Éxito!",
-      `Se agregó ${cantidad} unidad(es) de ${producto?.nombre || 'producto'} al carrito.`
-    );
+  const handleAgregarAlCarrito = () => {
+    const productoParaCarrito = {
+      id: producto?.id || Math.random().toString(),
+      nombre: producto?.nombre || producto?.Nombre,
+      precio: Number(producto?.precio || producto?.Precio || 0),
+      imagen: producto?.imagen || producto?.Imagen || 'https://via.placeholder.com/150',
+      cantidad: cantidad, 
+    };
+
+    // Navegamos a la pestaña del Carrito dentro del HomeTabs
+    navigation.navigate('HomeTabs', {
+      screen: 'CarritoTab',
+      params: {
+        productoAgregado: productoParaCarrito,
+        keyTimestamp: Date.now(),
+      },
+    });
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-       {/* IMAGEN PRINCIPAL DEL PRODUCTO */}
+        {/* IMAGEN PRINCIPAL DEL PRODUCTO */}
         <View style={styles.imageContainer}>
           <Image 
             source={{ uri: producto?.imagen || 'https://via.placeholder.com/150' }} 
@@ -56,7 +58,7 @@ export default function DetalleProducto({ route, navigation }) {
 
           <Text style={styles.productName}>{producto?.nombre || 'Nombre del producto'}</Text>
 
-          {/* CALIFICACIÓN DE ESTRELLAS Opcional simulado */}
+          {/* CALIFICACIÓN DE ESTRELLAS */}
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color="#FFB300" />
             <Ionicons name="star" size={16} color="#FFB300" />
@@ -68,7 +70,7 @@ export default function DetalleProducto({ route, navigation }) {
 
           {/* PRECIO Y CONTADOR DE CANTIDAD */}
           <View style={styles.priceRow}>
-            <Text style={styles.price}>${producto?.precio || '0.00'}</Text>
+            <Text style={styles.precio}>C$ {producto?.precio || producto?.Precio || 0}</Text>
             
             <View style={styles.counterContainer}>
               <TouchableOpacity onPress={decrementar} style={styles.counterButton}>
@@ -86,7 +88,7 @@ export default function DetalleProducto({ route, navigation }) {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Descripción del Producto</Text>
           <Text style={styles.descriptionText}>
-            {producto?.descripcion || 'El producto cuenta con excelentes estándares de calidad, diseñado para máxima durabilidad y rendimiento profesional en cualquier labor requerida.'}
+            {producto?.descripcion || 'El producto cuenta con excelentes estándares de calidad, diseñado para máxima durabilidad y rendimiento profesional.'}
           </Text>
         </View>
 
@@ -110,188 +112,177 @@ export default function DetalleProducto({ route, navigation }) {
 
       {/* BOTÓN INFERIOR FIJO: AGREGAR AL CARRITO */}
       <View style={styles.footerContainer}>
-        <TouchableOpacity style={styles.addToCartButton} onPress={agregarAlCarrito}>
-          <Ionicons name="cart" size={20} color="#FFF" style={{ marginRight: 8 }} />
+        <TouchableOpacity 
+          style={styles.addToCartButton} 
+          onPress={handleAgregarAlCarrito}
+        >
+          <Ionicons name="cart" size={20} color="#FFF" />
           <Text style={styles.addToCartText}>Agregar al Carrito</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
+  addToCartButton: { 
+    alignItems: 'center', 
+    backgroundColor: '#1E88E5', 
+    borderRadius: 10, 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    padding: 14 
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 90, 
+  addToCartText: { 
+    color: '#FFF', 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    marginLeft: 8 
   },
-  imageContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+  card: { 
+    backgroundColor: '#FFF', 
+    borderRadius: 12, 
+    marginBottom: 12, 
+    padding: 16 
   },
-  image: {
-    width: '100%',
-    height: 220,
+  codigoText: { 
+    color: '#777', 
+    fontSize: 12 
   },
-  card: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+  container: { 
+    backgroundColor: '#F4F6F9', 
+    flex: 1 
   },
-  rowTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  counterButton: { 
+    padding: 8, 
+    paddingHorizontal: 12 
   },
-  stockBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  counterContainer: { 
+    borderColor: '#DDD', 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center' 
   },
-  stockText: {
-    fontSize: 12,
-    color: '#2E7D32',
-    fontWeight: '600',
+  counterValue: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    paddingHorizontal: 8 
   },
-  codigoText: {
-    fontSize: 12,
-    color: '#888',
+  descriptionText: { 
+    color: '#666', 
+    fontSize: 14, 
+    lineHeight: 20 
   },
-  productName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 8,
+  footerContainer: { 
+    backgroundColor: '#FFF', 
+    borderTopColor: '#EEE', 
+    borderTopWidth: 1, 
+    bottom: 0, 
+    left: 0, 
+    padding: 16, 
+    position: 'absolute', 
+    right: 0 
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+  image: { 
+    height: 200, 
+    width: '100%' 
   },
-  ratingText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#333',
+  imageContainer: { 
+    alignItems: 'center', 
+    backgroundColor: '#FFF', 
+    borderRadius: 12, 
+    marginBottom: 12, 
+    padding: 16 
   },
-  ratingSub: {
-    fontWeight: 'normal',
-    color: '#888',
+  opinionBox: { 
+    backgroundColor: '#F9F9F9', 
+    borderRadius: 8, 
+    marginTop: 4, 
+    padding: 10 
   },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
+  opinionComment: { 
+    color: '#555', 
+    fontSize: 13, 
+    fontStyle: 'italic' 
   },
-  price: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1E88E5',
+  opinionDate: { 
+    color: '#888', 
+    fontSize: 11, 
+    marginBottom: 4 
   },
-  counterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    backgroundColor: '#FAFAFA',
+  opinionHeader: { 
+    alignItems: 'center', 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 8 
   },
-  counterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  opinionUser: { 
+    color: '#333', 
+    fontSize: 13, 
+    fontWeight: 'bold' 
   },
-  counterValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    paddingHorizontal: 8,
-    color: '#333',
+  precio: { 
+    color: '#1E88E5', 
+    fontSize: 22, 
+    fontWeight: 'bold' 
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+  priceRow: { 
+    alignItems: 'center', 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginTop: 8 
   },
-  descriptionText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+  productName: { 
+    color: '#333', 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    marginBottom: 8 
   },
-  opinionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  ratingContainer: { 
+    alignItems: 'center', 
+    flexDirection: 'row', 
+    marginBottom: 12 
   },
-  verTodasText: {
-    fontSize: 13,
-    color: '#1E88E5',
-    fontWeight: '600',
+  ratingSub: { 
+    color: '#777', 
+    fontWeight: 'normal' 
   },
-  opinionBox: {
-    marginTop: 8,
-    backgroundColor: '#FAFAFA',
-    padding: 10,
-    borderRadius: 8,
+  ratingText: { 
+    color: '#333', 
+    fontSize: 14, 
+    fontWeight: 'bold' 
   },
-  opinionUser: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#333',
+  rowTop: { 
+    alignItems: 'center', 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 8 
   },
-  opinionDate: {
-    fontSize: 11,
-    color: '#999',
-    marginBottom: 4,
+  scrollContent: { 
+    padding: 16, 
+    paddingBottom: 90 
   },
-  opinionComment: {
-    fontSize: 13,
-    color: '#555',
-    fontStyle: 'italic',
+  sectionTitle: { 
+    color: '#333', 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    marginBottom: 8 
   },
-  footerContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    elevation: 10,
+  stockBadge: { 
+    alignItems: 'center', 
+    backgroundColor: '#E8F5E9', 
+    borderRadius: 6, 
+    flexDirection: 'row', 
+    paddingHorizontal: 8, 
+    paddingVertical: 4 
   },
-  addToCartButton: {
-    backgroundColor: '#1E88E5',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: 10,
+  stockText: { 
+    color: '#2E7D32', 
+    fontSize: 12, 
+    fontWeight: '500' 
   },
-  addToCartText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  verTodasText: { 
+    color: '#1E88E5', 
+    fontWeight: '600' 
+  }
 });
