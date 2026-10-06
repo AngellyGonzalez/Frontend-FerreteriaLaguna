@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 export default function Carrito({ route, navigation }) {
   const [carrito, setCarrito] = useState([]);
 
-useEffect(() => {
+  useEffect(() => {
     if (route.params?.productoAgregado) {
       const nuevoProd = route.params.productoAgregado;
-      
+
       setCarrito(prevCarrito => {
         const index = prevCarrito.findIndex(item => item.id === nuevoProd.id);
         if (index !== -1) {
@@ -65,7 +65,7 @@ useEffect(() => {
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <Image source={{ uri: item.imagen }} style={styles.image} resizeMode="contain" />
-                
+
                 <View style={styles.infoContainer}>
                   <View style={styles.rowTop}>
                     <Text style={styles.nombreProducto} numberOfLines={2}>{item.nombre}</Text>
@@ -75,7 +75,7 @@ useEffect(() => {
                   </View>
 
                   <Text style={styles.precioUnitario}>C$ {Number(item.precio).toFixed(2)}</Text>
-                  
+
                   <View style={styles.rowBottom}>
                     <Text style={styles.subtotalTexto}>
                       Subtotal: <Text style={styles.subtotalValor}>C$ {(item.precio * item.cantidad).toFixed(2)}</Text>
@@ -111,7 +111,15 @@ useEffect(() => {
               <Text style={styles.totalNetoValor}>C$ {totalNeto.toFixed(2)}</Text>
             </View>
 
-            <TouchableOpacity style={styles.botonPagar} onPress={() => alert('¡Proceso de pago iniciado!')}>
+            <TouchableOpacity
+              style={styles.botonPagar}
+              onPress={() => {
+                navigation.navigate('FinalizarPedido', {
+                  productosCarrito: carrito,
+                  totalPagar: totalNeto
+                });
+              }}
+            >
               <Ionicons name="card-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
               <Text style={styles.textoBotonPagar}>Proceder al Pago</Text>
             </TouchableOpacity>

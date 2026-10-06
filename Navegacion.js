@@ -11,6 +11,7 @@ import DetalleProducto from "./screens/DetalleProducto";
 import Carrito from './screens/Carrito';
 import Pedidos from './screens/Pedidos';
 import Perfil from './screens/Perfil';
+import FinalizarPedido from './screens/FinalizarPedido';
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createNativeStackNavigator();
@@ -108,6 +109,12 @@ export default function Navegacion() {
         
         {/* Pantalla Principal con Pestañas */}
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
+
+        <Stack.Screen 
+          name="FinalizarPedido" 
+          component={FinalizarPedido} 
+          options={{ headerShown: false }} // O true si quieres que muestre su propia barra superior
+        />
 
       </Stack.Navigator> 
     </NavigationContainer> 
