@@ -8,6 +8,7 @@ const Login = ({ navigation }) => {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [verPassword, setVerPassword] = useState(false);
+  
 
   const handleLogin = async () => {
     if (!correo || !password) {
@@ -33,8 +34,18 @@ const Login = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
+      <ScrollView
+  contentContainerStyle={styles.scrollContainer}
+  showsVerticalScrollIndicator={false}
+>
+
+  <View style={styles.topHeader}>
+    <Text style={styles.topTitle}>
+      Ferretería Laguna
+    </Text>
+  </View>
+
+  <View style={styles.card}>
           
           {/* Logo de Ferretería Laguna */}
           <View style={styles.headerContainer}>
@@ -46,23 +57,39 @@ const Login = ({ navigation }) => {
           </View>
 
           <Text style={styles.title}>Iniciar Sesión</Text>
-          <Text style={styles.subtitle}>Bienvenido a Ferretería Laguna</Text>
+          <Text style={styles.subtitle}>¡Bienvenido a tu ferretería de confianza!</Text>
 
           {/* Campo Correo */}
           <Text style={styles.label}>Correo electrónico</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ingresa tu correo"
-            placeholderTextColor="#A0A0A0"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={correo}
-            onChangeText={setCorreo}
-          />
+          <View style={styles.inputContainer}>
+  <Ionicons
+    name="mail-outline"
+    size={20}
+    color="#0B2E59"
+  />
+
+  <TextInput
+    style={styles.inputText}
+    placeholder="Ingresa tu correo"
+    placeholderTextColor="#A0A0A0"
+    keyboardType="email-address"
+    autoCapitalize="none"
+    value={correo}
+    onChangeText={setCorreo}
+  />
+</View>
 
           {/* Campo Contraseña */}
           <Text style={styles.label}>Contraseña</Text>
           <View style={styles.passwordContainer}>
+
+             <Ionicons
+    name="lock-closed-outline"
+    size={20}
+    color="#0B2E59"
+    style={{ marginRight: 10 }}
+  />
+
             <TextInput
               style={styles.passwordInput}
               placeholder="Ingresa tu contraseña"
@@ -71,6 +98,8 @@ const Login = ({ navigation }) => {
               value={password}
               onChangeText={setPassword}
             />
+
+            
             <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
               <Ionicons 
                 name={verPassword ? "eye-outline" : "eye-off-outline"} 
@@ -99,9 +128,22 @@ const Login = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+
+  topHeader: {
+  alignItems: 'center',
+  marginBottom: 20,
+},
+
+topTitle: {
+  fontSize: 28,
+  fontWeight: 'bold',
+  color: '#0B2E59',
+  letterSpacing: 1,
+},
+ 
   container: {
     flex: 1,
-    backgroundColor: '#F0F2F5',
+    backgroundColor: '#EAF2FB',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -110,8 +152,10 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 24,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: '#F1F1F1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: { ios: 0.1, android: 0.2 }[Platform.OS] || 0.1,
@@ -123,8 +167,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logo: {
-    width: 120,
-    height: 90,
+   width: 140,
+height: 110,
     marginBottom: 5,
   },
   title: {
@@ -135,57 +179,79 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 25,
-  },
+  fontSize: 14,
+  color: '#666',
+  textAlign: 'center',
+  marginTop: 5,
+  marginBottom: 25,
+  lineHeight: 20,
+},
   label: {
     fontSize: 13,
     fontWeight: '600',
     color: '#333',
     marginBottom: 6,
   },
-  input: {
-    height: 48,
-    backgroundColor: '#FAFAFC',
-    borderWidth: 1,
-    borderColor: '#E1E1E8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 16,
-  },
+inputContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#FAFAFC',
+  borderWidth: 1,
+  borderColor: '#E1E1E8',
+  borderRadius: 12,
+  paddingHorizontal: 12,
+  height: 50,
+  marginBottom: 16,
+},
+
+inputText: {
+  flex: 1,
+  marginLeft: 10,
+  fontSize: 14,
+  color: '#333',
+},
   passwordContainer: {
-    height: 48,
-    backgroundColor: '#FAFAFC',
-    borderWidth: 1,
-    borderColor: '#E1E1E8',
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    marginBottom: 24,
-  },
+  height: 50,
+  backgroundColor: '#FAFAFC',
+  borderWidth: 1,
+  borderColor: '#E1E1E8',
+  borderRadius: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: 12,
+  marginBottom: 24,
+},
   passwordInput: {
     flex: 1,
     fontSize: 14,
     color: '#333',
   },
   botonLogin: {
-    backgroundColor: '#007AFF', 
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
+  height: 56,
+  borderRadius: 14,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 25,
+
+      backgroundColor: '#0B2E59',
+
+      shadowColor: '#0B2E59',
+      shadowOffset: {
+        width: 0,
+        height: 6,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+},
+
   textoBotonLogin: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
+  color: '#FFF',
+  fontSize: 16,
+  fontWeight: '700',
+  letterSpacing: 0.5,
+},
+
   registroContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
