@@ -12,6 +12,9 @@ import Carrito from './screens/Carrito';
 import Pedidos from './screens/Pedidos';
 import Perfil from './screens/Perfil';
 import FinalizarPedido from './screens/FinalizarPedido';
+import LoginAdmin from './screens/LoginAdmin';
+import VistaAdmin from './screens/VistaAdmin';           
+import NuevoProductoScreen from './screens/nuevoProducto';
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createNativeStackNavigator();
@@ -110,10 +113,15 @@ export default function Navegacion() {
         {/* Pantalla Principal con Pestañas */}
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
+   {/* PANTALLAS DE ADMINISTRACIÓN */}
+        <Stack.Screen name="LoginAdmin" component={LoginAdmin} options={{ headerShown: false }} />
+        <Stack.Screen name="VistaAdmin" component={VistaAdmin} options={{ headerShown: false }} />
+        <Stack.Screen name="nuevoProducto" component={NuevoProductoScreen} options={{ headerShown: true, title: "Gestión de Producto" }} />
+
         <Stack.Screen 
           name="FinalizarPedido" 
           component={FinalizarPedido} 
-          options={{ headerShown: false }} // O true si quieres que muestre su propia barra superior
+          options={{ headerShown: false }} 
         />
 
       </Stack.Navigator> 

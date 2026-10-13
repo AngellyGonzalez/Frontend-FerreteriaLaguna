@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/config';
@@ -35,18 +35,18 @@ const Login = ({ navigation }) => {
       style={styles.container}
     >
       <ScrollView
-  contentContainerStyle={styles.scrollContainer}
-  showsVerticalScrollIndicator={false}
->
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
 
-  <View style={styles.topHeader}>
-    <Text style={styles.topTitle}>
-      Ferretería Laguna
-    </Text>
-  </View>
+        <View style={styles.topHeader}>
+          <Text style={styles.topTitle}>
+            Ferretería Laguna
+          </Text>
+        </View>
 
-  <View style={styles.card}>
-          
+        <View style={styles.card}>
+              
           {/* Logo de Ferretería Laguna */}
           <View style={styles.headerContainer}>
             <Image 
@@ -62,33 +62,32 @@ const Login = ({ navigation }) => {
           {/* Campo Correo */}
           <Text style={styles.label}>Correo electrónico</Text>
           <View style={styles.inputContainer}>
-  <Ionicons
-    name="mail-outline"
-    size={20}
-    color="#0B2E59"
-  />
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color="#0B2E59"
+            />
 
-  <TextInput
-    style={styles.inputText}
-    placeholder="Ingresa tu correo"
-    placeholderTextColor="#A0A0A0"
-    keyboardType="email-address"
-    autoCapitalize="none"
-    value={correo}
-    onChangeText={setCorreo}
-  />
-</View>
+            <TextInput
+              style={styles.inputText}
+              placeholder="Ingresa tu correo"
+              placeholderTextColor="#A0A0A0"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={correo}
+              onChangeText={setCorreo}
+            />
+          </View>
 
           {/* Campo Contraseña */}
           <Text style={styles.label}>Contraseña</Text>
           <View style={styles.passwordContainer}>
-
              <Ionicons
-    name="lock-closed-outline"
-    size={20}
-    color="#0B2E59"
-    style={{ marginRight: 10 }}
-  />
+              name="lock-closed-outline"
+              size={20}
+              color="#0B2E59"
+              style={{ marginRight: 10 }}
+            />
 
             <TextInput
               style={styles.passwordInput}
@@ -98,7 +97,6 @@ const Login = ({ navigation }) => {
               value={password}
               onChangeText={setPassword}
             />
-
             
             <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
               <Ionicons 
@@ -121,6 +119,22 @@ const Login = ({ navigation }) => {
               <Text style={styles.textoRegistro}>Regístrate</Text>
             </TouchableOpacity>
           </View>
+
+          {/*  TARJETA DE ACCESO DE ADMINISTRADOR */}
+          <TouchableOpacity 
+            style={styles.adminCard} 
+            onPress={() => navigation.navigate('LoginAdmin')}
+          >
+            <View style={styles.adminRow}>
+              <Ionicons name="shield-checkmark-outline" size={22} color="#0B2E59" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adminTitle}>Acceso de administrador</Text>
+                <Text style={styles.adminSub}>Solo para personal autorizado.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#888" />
+            </View>
+          </TouchableOpacity>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -128,19 +142,16 @@ const Login = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-
   topHeader: {
-  alignItems: 'center',
-  marginBottom: 20,
-},
-
-topTitle: {
-  fontSize: 28,
-  fontWeight: 'bold',
-  color: '#0B2E59',
-  letterSpacing: 1,
-},
- 
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  topTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#0B2E59',
+    letterSpacing: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#EAF2FB',
@@ -167,8 +178,8 @@ topTitle: {
     marginBottom: 10,
   },
   logo: {
-   width: 140,
-height: 110,
+    width: 140,
+    height: 110,
     marginBottom: 5,
   },
   title: {
@@ -179,79 +190,74 @@ height: 110,
     marginBottom: 5,
   },
   subtitle: {
-  fontSize: 14,
-  color: '#666',
-  textAlign: 'center',
-  marginTop: 5,
-  marginBottom: 25,
-  lineHeight: 20,
-},
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 5,
+    marginBottom: 25,
+    lineHeight: 20,
+  },
   label: {
     fontSize: 13,
     fontWeight: '600',
     color: '#333',
     marginBottom: 6,
   },
-inputContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#FAFAFC',
-  borderWidth: 1,
-  borderColor: '#E1E1E8',
-  borderRadius: 12,
-  paddingHorizontal: 12,
-  height: 50,
-  marginBottom: 16,
-},
-
-inputText: {
-  flex: 1,
-  marginLeft: 10,
-  fontSize: 14,
-  color: '#333',
-},
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFC',
+    borderWidth: 1,
+    borderColor: '#E1E1E8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 50,
+    marginBottom: 16,
+  },
+  inputText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#333',
+  },
   passwordContainer: {
-  height: 50,
-  backgroundColor: '#FAFAFC',
-  borderWidth: 1,
-  borderColor: '#E1E1E8',
-  borderRadius: 12,
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: 12,
-  marginBottom: 24,
-},
+    height: 50,
+    backgroundColor: '#FAFAFC',
+    borderWidth: 1,
+    borderColor: '#E1E1E8',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 24,
+  },
   passwordInput: {
     flex: 1,
     fontSize: 14,
     color: '#333',
   },
   botonLogin: {
-  height: 56,
-  borderRadius: 14,
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 25,
-
-      backgroundColor: '#0B2E59',
-
-      shadowColor: '#0B2E59',
-      shadowOffset: {
-        width: 0,
-        height: 6,
-      },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-},
-
+    height: 56,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#0B2E59',
+    shadowColor: '#0B2E59',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   textoBotonLogin: {
-  color: '#FFF',
-  fontSize: 16,
-  fontWeight: '700',
-  letterSpacing: 0.5,
-},
-
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   registroContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -265,6 +271,29 @@ inputText: {
     fontSize: 13,
     fontWeight: 'bold',
     color: '#007AFF',
+  },
+ 
+  adminCard: {
+    backgroundColor: '#F8F9FA',
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 20,
+    padding: 12,
+  },
+  adminRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  adminTitle: {
+    color: '#0B2E59',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  adminSub: {
+    color: '#666',
+    fontSize: 11,
+    marginTop: 2,
   },
 });
 
