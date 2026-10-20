@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { db, auth } from '../firebase/config';
 import { doc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../firebase/config';
 
 export default function Registro({ navigation }) {
   const [nombres, setNombres] = useState('');
@@ -26,19 +26,21 @@ export default function Registro({ navigation }) {
     setCargando(true);
 
     try {
-
+      // 1. Crear el usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, correo.trim(), password);
-      const user = userCredential.user;
+      const user = userCredential.user; // UID único generado por Firebase Auth
 
-      const nuevoCliente = {
-        Nombres: nombres.trim(),
-        Apellidos: apellidos.trim(),
-        Cedula: cedula.trim(),
+      // 2. Definir los datos del usuario con los campos limpios en minúsculas
+      const nuevoUsuario = {
+        nombres: nombres.trim(),
+        apellidos: apellidos.trim(),
+        cedula: cedula.trim(),
         telefono: telefono.trim(),
         correo: correo.trim(),
       };
 
-      await setDoc(doc(db, "cliente", user.uid), nuevoCliente);
+      // 3. Guardar en la colección 'usuario' usando el user.uid como ID del documento
+      await setDoc(doc(db, "usuario", user.uid), nuevoUsuario);
 
       Alert.alert(
         '¡Bienvenido a Ferretería Laguna!', 

@@ -1,35 +1,150 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { collection, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 
 export default function FinalizarPedido({ route, navigation }) {
   // Recibimos los datos enviados desde el Carrito
-  const { productosCarrito = [], totalPagar = 0 } = route.params || {};
+  const { productosCarrito = [], costoEnvio = 50 } = route.params || {};
+  const subtotal = productosCarrito.reduce(
+    (total, item) => total + Number(item.precio) * Number(item.cantidad),
+    0
+  );
+  const totalPagar = subtotal + Number(costoEnvio);
 
-  // Estados para los campos del formulario (puedes enlazarlos a backend después)
-  const [departamento, setDepartamento] = useState('Managua');
-  const [municipio, setMunicipio] = useState('Distrito V');
-  const [barrio, setBarrio] = useState('Reparto San Juan');
-  const [direccion, setDireccion] = useState('Del portón principal de la UCA, 150 varas abajo...');
+  const [direccionesGuardadas, setDireccionesGuardadas] = useState([]);
+  const [cargandoDirecciones, setCargandoDirecciones] = useState(true);
+  const [mostrarDirecciones, setMostrarDirecciones] = useState(false);
+  const [direccionSeleccionada, setDireccionSeleccionada] = useState(null);
+  const [departamento, setDepartamento] = useState('');
+  const [municipio, setMunicipio] = useState('');
+  const [barrio, setBarrio] = useState('');
+  const [direccion, setDireccion] = useState('');
   
   const [numeroTarjeta, setNumeroTarjeta] = useState('.... .... .... 4519');
   const [vencimiento, setVencimiento] = useState('12/28');
   const [cvv, setCvv] = useState('***');
+  const [guardandoPedido, setGuardandoPedido] = useState(false);
 
-  const handleConfirmarPedido = () => {
-    Alert.alert(
-      "¡Pedido Exitoso!",
-      "Tu orden ha sido registrada correctamente.",
-      [
-        { 
-          text: "OK", 
-          onPress: () => {
-            // Regresamos al catálogo o a la pestaña de pedidos limpia
-            navigation.navigate('HomeTabs', { screen: 'CatalogoTab' });
-          } 
+  useEffect(() => {
+    let activo = true;
+
+    const cargarDirecciones = async () => {
+      try {
+        const usuario = auth.currentUser;
+        if (!usuario) {
+          throw new Error('No hay un usuario autenticado para cargar las direcciones.');
         }
-      ]
-    );
+
+        const usuarioSnapshot = await getDoc(doc(db, 'usuario', usuario.uid));
+        if (!usuarioSnapshot.exists()) {
+          throw new Error('No se encontró el perfil del usuario.');
+        }
+
+        const direcciones = usuarioSnapshot.data().direcciones || {};
+        if (activo) {
+          setDireccionesGuardadas(
+            Object.entries(direcciones).map(([id, datos]) => ({ id, ...datos }))
+          );
+        }
+      } catch (error) {
+        console.error('Error al cargar direcciones para el pedido: ', error);
+        if (activo) {
+          Alert.alert('Error', 'No se pudieron cargar las direcciones guardadas.');
+        }
+      } finally {
+        if (activo) setCargandoDirecciones(false);
+      }
+    };
+
+    cargarDirecciones();
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const seleccionarDireccion = (direccionGuardada) => {
+    setDireccionSeleccionada(direccionGuardada.id);
+    setDepartamento(direccionGuardada.departamento || '');
+    setMunicipio(direccionGuardada.Municipio || direccionGuardada.municipio || '');
+    setBarrio(direccionGuardada.barrio || '');
+    setDireccion(direccionGuardada.direccion || '');
+    setMostrarDirecciones(false);
+  };
+
+  const handleConfirmarPedido = async () => {
+    if (guardandoPedido) return;
+    if (!auth.currentUser) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para registrar tu pedido.');
+      return;
+    }
+    if (productosCarrito.length === 0) {
+      Alert.alert('Carrito vacío', 'Agrega al menos un producto antes de confirmar el pedido.');
+      return;
+    }
+    if (![departamento, municipio, barrio, direccion].every((valor) => valor.trim())) {
+      Alert.alert('Dirección incompleta', 'Completa todos los campos de la dirección de entrega.');
+      return;
+    }
+
+    setGuardandoPedido(true);
+    try {
+      const usuario = auth.currentUser;
+      const usuarioRef = doc(db, 'usuario', usuario.uid);
+      const pedidoRef = doc(collection(db, 'pedidos'));
+      const productosPedido = productosCarrito.map((producto) => ({
+        id: String(producto.id),
+        nombre: producto.nombre || 'Producto',
+        imagen: producto.imagen || '',
+        precio: Number(producto.precio) || 0,
+        cantidad: Number(producto.cantidad) || 1,
+      }));
+      const pedido = {
+        usuarioId: usuario.uid,
+        correoUsuario: usuario.email || '',
+        productos: productosPedido,
+        subtotal,
+        costoEnvio: Number(costoEnvio),
+        total: totalPagar,
+        direccion: {
+          departamento: departamento.trim(),
+          municipio: municipio.trim(),
+          barrio: barrio.trim(),
+          detalle: direccion.trim(),
+        },
+        estado: 'Pendiente',
+        fecha: serverTimestamp(),
+      };
+      const productosCompradosIds = new Set(productosPedido.map((producto) => producto.id));
+
+      await runTransaction(db, async (transaction) => {
+        const usuarioSnapshot = await transaction.get(usuarioRef);
+        if (!usuarioSnapshot.exists()) {
+          throw new Error('No se encontró el perfil del usuario para guardar el pedido.');
+        }
+
+        const carritoActual = usuarioSnapshot.data().carrito || {};
+        const carritoRestante = Object.fromEntries(
+          Object.entries(carritoActual).filter(([id]) => !productosCompradosIds.has(id))
+        );
+
+        transaction.set(pedidoRef, pedido);
+        transaction.update(usuarioRef, { carrito: carritoRestante });
+      });
+
+      Alert.alert('¡Pedido Exitoso!', 'Tu pedido quedó registrado correctamente.', [
+        {
+          text: 'Ver mis pedidos',
+          onPress: () => navigation.navigate('HomeTabs', { screen: 'PedidosTab' }),
+        },
+      ]);
+    } catch (error) {
+      console.error('Error al registrar el pedido: ', error);
+      Alert.alert('Error', 'No se pudo registrar el pedido. Inténtalo de nuevo.');
+    } finally {
+      setGuardandoPedido(false);
+    }
   };
 
   return (
@@ -50,6 +165,66 @@ export default function FinalizarPedido({ route, navigation }) {
             <Ionicons name="location-outline" size={20} color="#1E88E5" />
             <Text style={styles.cardTitle}>Dirección de Entrega</Text>
           </View>
+
+          <Text style={styles.label}>Direcciones guardadas en tu perfil</Text>
+          <TouchableOpacity
+            style={styles.selectorDireccion}
+            onPress={() => setMostrarDirecciones(!mostrarDirecciones)}
+            disabled={cargandoDirecciones || direccionesGuardadas.length === 0}
+          >
+            {cargandoDirecciones ? (
+              <ActivityIndicator size="small" color="#1E88E5" />
+            ) : (
+              <>
+                <Text style={styles.selectorDireccionTexto}>
+                  {direccionesGuardadas.length === 0
+                    ? 'No tienes direcciones guardadas'
+                    : direccionSeleccionada
+                      ? 'Cambiar dirección guardada'
+                      : 'Elegir una dirección guardada'}
+                </Text>
+                <Ionicons
+                  name={mostrarDirecciones ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color="#666"
+                />
+              </>
+            )}
+          </TouchableOpacity>
+
+          {mostrarDirecciones && (
+            <View style={styles.listaDirecciones}>
+              {direccionesGuardadas.map((direccionGuardada) => {
+                const municipioGuardado = direccionGuardada.Municipio || direccionGuardada.municipio || '';
+                const seleccionada = direccionSeleccionada === direccionGuardada.id;
+                return (
+                  <TouchableOpacity
+                    key={direccionGuardada.id}
+                    style={[styles.opcionDireccion, seleccionada && styles.opcionDireccionSeleccionada]}
+                    onPress={() => seleccionarDireccion(direccionGuardada)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: seleccionada }}
+                  >
+                    <View style={styles.opcionDireccionTexto}>
+                      <Text style={styles.opcionDireccionPrincipal}>
+                        {direccionGuardada.direccion || 'Dirección sin detalle'}
+                      </Text>
+                      <Text style={styles.opcionDireccionSecundaria}>
+                        {[direccionGuardada.barrio, municipioGuardado, direccionGuardada.departamento]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={seleccionada ? 'radio-button-on' : 'radio-button-off'}
+                      size={20}
+                      color={seleccionada ? '#1E88E5' : '#999'}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           <View style={styles.rowInputs}>
             <View style={styles.inputHalf}>
@@ -113,8 +288,16 @@ export default function FinalizarPedido({ route, navigation }) {
           ))}
 
           <View style={[styles.resumenFila, { borderTopWidth: 1, borderTopColor: '#EEE', marginTop: 8, paddingTop: 8 }]}>
+            <Text style={styles.totalFinalLabel}>Subtotal:</Text>
+            <Text style={styles.resumenValorItem}>C$ {subtotal.toFixed(2)}</Text>
+          </View>
+          <View style={styles.resumenFila}>
+            <Text style={styles.resumenTextoItem}>Costo de envío:</Text>
+            <Text style={styles.resumenValorItem}>C$ {Number(costoEnvio).toFixed(2)}</Text>
+          </View>
+          <View style={[styles.resumenFila, { borderTopWidth: 1, borderTopColor: '#EEE', marginTop: 8, paddingTop: 8 }]}>
             <Text style={styles.totalFinalLabel}>Total Final:</Text>
-            <Text style={styles.totalFinalValor}>C$ {Number(totalPagar).toFixed(2)}</Text>
+            <Text style={styles.totalFinalValor}>C$ {totalPagar.toFixed(2)}</Text>
           </View>
         </View>
 
@@ -122,9 +305,19 @@ export default function FinalizarPedido({ route, navigation }) {
 
       {/* BOTÓN INFERIOR DE CONFIRMACIÓN */}
       <View style={styles.footerContainer}>
-        <TouchableOpacity style={styles.botonConfirmar} onPress={handleConfirmarPedido}>
-          <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-          <Text style={styles.textoBotonConfirmar}>Confirmar Pedido (C$ {Number(totalPagar).toFixed(2)})</Text>
+        <TouchableOpacity
+          style={styles.botonConfirmar}
+          onPress={handleConfirmarPedido}
+          disabled={guardandoPedido}
+        >
+          {guardandoPedido ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+              <Text style={styles.textoBotonConfirmar}>Confirmar Pedido (C$ {totalPagar.toFixed(2)})</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -198,6 +391,54 @@ const styles = StyleSheet.create({
   inputHalf: {
     flex: 1,
     marginRight: 8,
+  },
+  selectorDireccion: {
+    alignItems: 'center',
+    backgroundColor: '#F9F9F9',
+    borderColor: '#DDD',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    minHeight: 42,
+    paddingHorizontal: 12,
+  },
+  selectorDireccionTexto: {
+    color: '#1E88E5',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  listaDirecciones: {
+    marginBottom: 12,
+  },
+  opcionDireccion: {
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderColor: '#DDD',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 8,
+    padding: 10,
+  },
+  opcionDireccionSeleccionada: {
+    borderColor: '#1E88E5',
+    backgroundColor: '#F1F8FF',
+  },
+  opcionDireccionTexto: {
+    flex: 1,
+    marginRight: 8,
+  },
+  opcionDireccionPrincipal: {
+    color: '#333',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  opcionDireccionSecundaria: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 3,
   },
   label: {
     color: '#666',

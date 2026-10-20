@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { doc, getDoc } from 'firebase/firestore'; // 👈 1. Importamos funciones de Firestore
+import { auth, db } from '../firebase/config';      // 👈 2. Importamos 'db'
 
 const LoginAdmin = ({ navigation }) => {
   const [correo, setCorreo] = useState('');
@@ -16,32 +17,50 @@ const LoginAdmin = ({ navigation }) => {
       return;
     }
 
-    // CORREO ÚNICO AUTORIZADO COMO ADMINISTRADOR
-    const CORREO_ADMIN_OFICIAL = 'adminferreterialaguna@gmail.com'; 
-
-    if (correo.trim().toLowerCase() !== CORREO_ADMIN_OFICIAL.toLowerCase()) {
-      Alert.alert('Acceso Denegado', 'Este correo no cuenta con privilegios de administrador.');
-      return;
-    }
-
     setLoading(true);
     try {
       // 1. Autenticar con Firebase Auth
-      await signInWithEmailAndPassword(auth, correo.trim(), password);
-      
+      const userCredential = await signInWithEmailAndPassword(auth, correo.trim(), password);
+      const user = userCredential.user;
+
+      // 2. Consultar la colección 'usuario' usando el UID del usuario autenticado
+      const userDocRef = doc(db, 'usuario', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        setLoading(false);
+        Alert.alert('Acceso Denegado', 'No se encontró información de este usuario en la base de datos.');
+        return;
+      }
+
+      const userData = userDocSnap.data();
+
+      // 3. Verificar si el usuario tiene rol de administrador
+      // (Puedes cambiar 'rol === "admin"' según el nombre del campo que uses en Firestore, ej: isAdmin === true)
+      if (userData.rol !== 'admin' && userData.isAdmin !== true) {
+        setLoading(false);
+        Alert.alert('Acceso Denegado', 'Esta cuenta no cuenta con privilegios de administrador.');
+        return;
+      }
+
       setLoading(false);
       Alert.alert('¡Bienvenido, Admin!', 'Acceso concedido al panel de control.');
       
-      // 2. Redirigir a la vista de administración
-      navigation.replace('VistaAdmin');
+      // 4. Redirigir a la vista de administración
+      navigation.replace('PanelAdmin');
 
     } catch (error) {
       setLoading(false);
       console.error(error);
-      Alert.alert(
-        'Error de Autenticación', 
-        'La contraseña es incorrecta o la cuenta de administrador no existe.'
-      );
+      
+      let mensajeError = 'La contraseña es incorrecta o la cuenta no existe.';
+      if (error.code === 'auth/user-not-found') {
+        mensajeError = 'No existe una cuenta con este correo.';
+      } else if (error.code === 'auth/wrong-password') {
+        mensajeError = 'Contraseña incorrecta.';
+      }
+
+      Alert.alert('Error de Autenticación', mensajeError);
     }
   };
 
@@ -180,7 +199,7 @@ const styles = StyleSheet.create({
     borderColor: '#F1F1F1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: { ios: 0.1, android: 0.2 }[Platform.OS] || 0.1,
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 0.2,
     shadowRadius: 10,
     elevation: 5,
   },

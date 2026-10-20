@@ -14,10 +14,44 @@ import Perfil from './screens/Perfil';
 import FinalizarPedido from './screens/FinalizarPedido';
 import LoginAdmin from './screens/LoginAdmin';
 import VistaAdmin from './screens/VistaAdmin';           
+import AdminPedidos from './screens/AdminPedidos';
 import NuevoProductoScreen from './screens/nuevoProducto';
 
 const Tab = createBottomTabNavigator(); 
 const Stack = createNativeStackNavigator();
+
+function AdminStack() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#1E88E5',
+        tabBarInactiveTintColor: '#888',
+      }}
+    >
+      <Tab.Screen
+        name="VistaAdmin"
+        component={VistaAdmin}
+        options={{
+          title: 'Productos',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="AdminPedidos"
+        component={AdminPedidos}
+        options={{
+          title: 'Pedidos',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="clipboard-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 // STACK DEL CATÁLOGO 
 function CatalogoStack() { 
@@ -115,7 +149,7 @@ export default function Navegacion() {
 
    {/* PANTALLAS DE ADMINISTRACIÓN */}
         <Stack.Screen name="LoginAdmin" component={LoginAdmin} options={{ headerShown: false }} />
-        <Stack.Screen name="VistaAdmin" component={VistaAdmin} options={{ headerShown: false }} />
+        <Stack.Screen name="PanelAdmin" component={AdminStack} options={{ headerShown: false }} />
         <Stack.Screen name="nuevoProducto" component={NuevoProductoScreen} options={{ headerShown: true, title: "Gestión de Producto" }} />
 
         <Stack.Screen 
