@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {View,Text,StyleSheet,ScrollView,TouchableOpacity,TextInput, Modal,Alert,ActivityIndicator} from 'react-native';
+import {View,Text,StyleSheet,ScrollView,TouchableOpacity,TextInput, Modal,ActivityIndicator} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth, db } from '../firebase/config';
 import { deleteField, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useAppAlert } from '../components/AppAlert';
 
 export default function Perfil({ navigation }) {
+  const Alert = useAppAlert();
   const [usuarioData, setUsuarioData] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -185,40 +187,47 @@ const handleCerrarSesion = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      
-      {/* TARJETA DE PERFIL (Nombre y Correo Dinámico) */}
-      <View style={styles.cardHeader}>
-        <View style={styles.avatarContainer}>
-          <Ionicons name="person" size={40} color="#007AFF" />
-        </View>
-        <View style={styles.userInfoHeader}>
-          <Text style={styles.userName}>{nombreMostrar || 'Cliente Ferretería'}</Text>
-          <Text style={styles.userEmail}>{usuarioData?.correo || auth.currentUser?.email}</Text>
+      <Text style={styles.pageTitle}>Mi perfil</Text>
+      <Text style={styles.pageSubtitle}>Administra tu cuenta y tus direcciones</Text>
+
+      <View style={styles.profileCard}>
+        <View style={styles.profileTopRow}>
+          <View style={styles.avatarContainer}>
+            <Ionicons name="person" size={34} color="#0B2E59" />
+          </View>
           <View style={styles.badgeActive}>
-            <Ionicons name="checkmark-circle" size={14} color="#2e7d32" />
+            <Ionicons name="checkmark-circle" size={14} color="#A8E6B0" />
             <Text style={styles.badgeText}>Cuenta activa</Text>
           </View>
         </View>
-      </View>
-
-      {/* DETALLE DE CORREO */}
-      <View style={styles.cardSection}>
-        <View style={styles.rowDetail}>
-          <Ionicons name="mail-outline" size={22} color="#555" style={{ marginRight: 12 }} />
-          <View>
-            <Text style={styles.labelTitle}>Correo electrónico</Text>
-            <Text style={styles.labelValue}>{usuarioData?.correo || auth.currentUser?.email}</Text>
-          </View>
+        <Text style={styles.userName}>{nombreMostrar || 'Cliente Ferretería'}</Text>
+        <View style={styles.profileEmailRow}>
+          <Ionicons name="mail-outline" size={16} color="#C8D8EB" />
+          <Text style={styles.userEmail}>{usuarioData?.correo || auth.currentUser?.email || 'Correo no disponible'}</Text>
         </View>
       </View>
 
       {/* SECCIÓN DE DIRECCIONES */}
       <View style={styles.cardSection}>
         <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>Mis Direcciones</Text>
+          <View style={styles.sectionHeading}>
+            <View style={styles.sectionIcon}>
+              <Ionicons name="location" size={18} color="#0B2E59" />
+            </View>
+            <View>
+              <Text style={styles.sectionTitle}>Mis direcciones</Text>
+              <Text style={styles.sectionSubtitle}>
+                {listaDirecciones.length === 1
+                  ? '1 dirección guardada'
+                  : `${listaDirecciones.length} direcciones guardadas`}
+              </Text>
+            </View>
+          </View>
           <TouchableOpacity 
             style={styles.btnAddAddress} 
             onPress={abrirModalAgregarDireccion}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar dirección"
           >
             <Ionicons name="add" size={18} color="#FFF" />
             <Text style={styles.btnAddText}>Agregar</Text>
@@ -226,41 +235,47 @@ const handleCerrarSesion = () => {
         </View>
 
         {listaDirecciones.length === 0 ? (
-          <Text style={styles.emptyText}>No tienes direcciones registradas.</Text>
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="home-outline" size={26} color="#7B8DA5" />
+            </View>
+            <Text style={styles.emptyTitle}>Aún no tienes direcciones</Text>
+            <Text style={styles.emptyText}>Agrega una dirección para agilizar tus próximos pedidos.</Text>
+          </View>
         ) : (
           listaDirecciones.map((item) => (
             <View key={item.id} style={styles.addressCard}>
-              <Ionicons name="location-outline" size={20} color="#0B2E59" style={{ marginRight: 10 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.addressMain}>
-                  {item.direccion}
-                </Text>
-
-                {/* Compatibilidad con campos en minúscula o Mayúscula */}
-                <Text style={styles.addressSub}>
-                  {item.barrio ? `B° ${item.barrio}, ` : ''}
-                  {item.Municipio || item.municipio || ''}, {item.departamento || ''}
-                </Text>
+              <View style={styles.addressIcon}>
+                <Ionicons name="location-outline" size={20} color="#0B2E59" />
               </View>
-              <View style={styles.addressActions}>
-                <TouchableOpacity
-                  style={styles.btnEditAddress}
-                  onPress={() => abrirModalEditarDireccion(item)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Editar dirección"
-                >
-                  <Ionicons name="create-outline" size={16} color="#0B2E59" />
-                  <Text style={styles.addressActionText}>Editar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.btnDeleteAddress}
-                  onPress={() => handleEliminarDireccion(item.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Eliminar dirección"
-                >
-                  <Ionicons name="trash-outline" size={16} color="#D32F2F" />
-                  <Text style={[styles.addressActionText, styles.deleteAddressText]}>Eliminar</Text>
-                </TouchableOpacity>
+              <View style={styles.addressContent}>
+                <Text style={styles.addressMain}>{item.direccion}</Text>
+                <Text style={styles.addressSub}>
+                  {[item.barrio && `B° ${item.barrio}`, item.Municipio || item.municipio, item.departamento]
+                    .filter(Boolean)
+                    .join(', ')}
+                </Text>
+                <View style={styles.addressActions}>
+                  <TouchableOpacity
+                    style={styles.btnEditAddress}
+                    onPress={() => abrirModalEditarDireccion(item)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Editar dirección"
+                  >
+                    <Ionicons name="create-outline" size={16} color="#0B2E59" />
+                    <Text style={styles.addressActionText}>Editar</Text>
+                  </TouchableOpacity>
+                  <View style={styles.actionDivider} />
+                  <TouchableOpacity
+                    style={styles.btnDeleteAddress}
+                    onPress={() => handleEliminarDireccion(item.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Eliminar dirección"
+                  >
+                    <Ionicons name="trash-outline" size={16} color="#0B2E59" />
+                    <Text style={[styles.addressActionText, styles.deleteAddressText]}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))
@@ -269,21 +284,31 @@ const handleCerrarSesion = () => {
 
       {/* OPCIONES DE CONFIGURACIÓN */}
       <View style={styles.cardSection}>
-        <TouchableOpacity style={styles.menuRow}>
-          <Ionicons name="lock-closed-outline" size={20} color="#333" />
+        <View style={styles.settingsHeading}>
+          <Ionicons name="settings-outline" size={18} color="#0B2E59" />
+          <Text style={styles.sectionTitle}>Configuración</Text>
+        </View>
+        <View style={styles.menuRow}>
+          <View style={[styles.menuIcon, styles.menuIconBlue]}>
+            <Ionicons name="lock-closed-outline" size={18} color="#0B2E59" />
+          </View>
           <Text style={styles.menuText}>Cambiar contraseña</Text>
           <Ionicons name="chevron-forward" size={18} color="#aaa" />
-        </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={styles.menuRow}>
-          <Ionicons name="notifications-outline" size={20} color="#333" />
+        <View style={styles.menuRow}>
+          <View style={[styles.menuIcon, styles.menuIconGold]}>
+            <Ionicons name="notifications-outline" size={18} color="#0B2E59" />
+          </View>
           <Text style={styles.menuText}>Notificaciones</Text>
           <Ionicons name="chevron-forward" size={18} color="#aaa" />
-        </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.menuRow} onPress={handleCerrarSesion}>
-          <Ionicons name="log-out-outline" size={20} color="#d32f2f" />
-          <Text style={[styles.menuText, { color: '#d32f2f', fontWeight: 'bold' }]}>Cerrar sesión</Text>
+          <View style={[styles.menuIcon, styles.menuIconBlue]}>
+            <Ionicons name="log-out-outline" size={18} color="#0B2E59" />
+          </View>
+          <Text style={styles.menuText}>Cerrar sesión</Text>
           <Ionicons name="chevron-forward" size={18} color="#aaa" />
         </TouchableOpacity>
       </View>
@@ -292,6 +317,9 @@ const handleCerrarSesion = () => {
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalIcon}>
+              <Ionicons name="location" size={22} color="#0B2E59" />
+            </View>
             <Text style={styles.modalTitle}>
               {direccionEditando ? 'Editar Dirección' : 'Agregar Nueva Dirección'}
             </Text>
@@ -323,7 +351,7 @@ const handleCerrarSesion = () => {
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity 
-                style={[styles.btnModal, { backgroundColor: '#ccc' }]}
+                style={styles.btnModal}
                 onPress={() => {
                   setModalVisible(false);
                   limpiarFormularioDireccion();
@@ -333,14 +361,14 @@ const handleCerrarSesion = () => {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.btnModal, { backgroundColor: '#0B2E59' }]}
+                style={styles.btnModal}
                 onPress={handleGuardarDireccion}
                 disabled={guardandoDir}
               >
                 {guardandoDir ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={[styles.btnModalText, { color: '#FFF' }]}>
+                  <Text style={styles.btnModalText}>
                     {direccionEditando ? 'Actualizar' : 'Guardar'}
                   </Text>
                 )}
@@ -361,144 +389,231 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 30,
+    paddingBottom: 36,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-    elevation: 2,
+  pageTitle: {
+    color: '#172B45',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E1F0FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  userInfoHeader: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111',
-  },
-  userEmail: {
-    fontSize: 13,
-    color: '#666',
-    marginVertical: 2,
-  },
-  badgeActive: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+  pageSubtitle: {
+    color: '#738198',
+    fontSize: 14,
+    marginBottom: 18,
     marginTop: 4,
   },
+  profileCard: {
+    backgroundColor: '#0B2E59',
+    borderRadius: 20,
+    marginBottom: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#0B2E59',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+  },
+  profileTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D5E4F4',
+    borderRadius: 34,
+    borderWidth: 3,
+    height: 68,
+    justifyContent: 'center',
+    width: 68,
+  },
+  userName: {
+    color: '#FFFFFF',
+    fontSize: 21,
+    fontWeight: '800',
+  },
+  userEmail: {
+    color: '#D7E4F2',
+    flex: 1,
+    fontSize: 13,
+    marginLeft: 7,
+  },
+  profileEmailRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginTop: 7,
+  },
+  badgeActive: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   badgeText: {
+    color: '#FFFFFF',
     fontSize: 11,
-    color: '#2e7d32',
     fontWeight: '600',
     marginLeft: 4,
   },
   cardSection: {
     backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
+    borderColor: '#E8EDF4',
+    borderRadius: 18,
+    borderWidth: 1,
     elevation: 2,
-  },
-  rowDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  labelTitle: {
-    fontSize: 12,
-    color: '#888',
-  },
-  labelValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 1,
+    marginBottom: 14,
+    padding: 16,
+    shadowColor: '#27364B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
   sectionTitleRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
+  sectionHeading: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+  },
+  sectionIcon: {
+    alignItems: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 12,
+    height: 40,
+    justifyContent: 'center',
+    marginRight: 10,
+    width: 40,
+  },
   sectionTitle: {
+    color: '#172B45',
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111',
+    fontWeight: '800',
+  },
+  sectionSubtitle: {
+    color: '#8591A3',
+    fontSize: 12,
+    marginTop: 2,
   },
   btnAddAddress: {
-    flexDirection: 'row',
-    backgroundColor: '#0B2E59',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
     alignItems: 'center',
+    backgroundColor: '#0B2E59',
+    borderRadius: 8,
+    flexDirection: 'row',
+    marginLeft: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   btnAddText: {
     color: '#FFF',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
-    marginLeft: 2,
+    marginLeft: 3,
   },
   emptyText: {
+    color: '#7B8798',
     fontSize: 13,
-    color: '#888',
-    fontStyle: 'italic',
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFD',
+    borderColor: '#E8EDF4',
+    borderRadius: 14,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+  },
+  emptyIcon: {
+    alignItems: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 25,
+    height: 50,
+    justifyContent: 'center',
+    marginBottom: 10,
+    width: 50,
+  },
+  emptyTitle: {
+    color: '#263A53',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   addressCard: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFC',
+    backgroundColor: '#F8FAFD',
+    borderColor: '#E8EDF4',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E1E1E8',
+    flexDirection: 'row',
+    marginBottom: 9,
     padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
+  },
+  addressIcon: {
+    alignItems: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 12,
+    height: 40,
+    justifyContent: 'center',
+    marginRight: 10,
+    width: 40,
+  },
+  addressContent: {
+    flex: 1,
   },
   addressMain: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#263A53',
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 19,
   },
   addressSub: {
+    color: '#758297',
     fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    lineHeight: 17,
+    marginTop: 3,
   },
   addressActions: {
-    alignItems: 'flex-end',
-    marginLeft: 8,
+    alignItems: 'center',
+    borderTopColor: '#E8EDF4',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    marginTop: 8,
+    paddingTop: 5,
   },
   btnEditAddress: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    flexDirection: 'row',
+    paddingRight: 12,
+    paddingVertical: 5,
   },
   btnDeleteAddress: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    flexDirection: 'row',
+    paddingLeft: 12,
+    paddingVertical: 5,
+  },
+  actionDivider: {
+    backgroundColor: '#D9E0E9',
+    height: 18,
+    width: 1,
   },
   addressActionText: {
     color: '#0B2E59',
@@ -507,20 +622,40 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   deleteAddressText: {
-    color: '#D32F2F',
+    color: '#0B2E59',
   },
   menuRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    flexDirection: 'row',
+    minHeight: 58,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#EDF1F6',
+  },
+  settingsHeading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: 2,
+  },
+  menuIcon: {
+    alignItems: 'center',
+    borderRadius: 11,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  menuIconBlue: {
+    backgroundColor: '#EAF2FB',
+  },
+  menuIconGold: {
+    backgroundColor: '#EAF2FB',
   },
   menuText: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 11,
     fontSize: 14,
-    color: '#333',
+    color: '#33445B',
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -530,12 +665,22 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 22,
+  },
+  modalIcon: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 22,
+    height: 44,
+    justifyContent: 'center',
+    marginBottom: 10,
+    width: 44,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 19,
+    fontWeight: '800',
     color: '#0B2E59',
     marginBottom: 15,
     textAlign: 'center',
@@ -555,14 +700,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   btnModal: {
+    alignItems: 'center',
+    backgroundColor: '#0B2E59',
     flex: 0.48,
     paddingVertical: 12,
     borderRadius: 10,
-    alignItems: 'center',
   },
   btnModalText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFF',
   },
 });

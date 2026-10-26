@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 const Login = ({ navigation }) => {
+  const Alert = useAppAlert();
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [verPassword, setVerPassword] = useState(false);
@@ -99,10 +101,10 @@ const Login = ({ navigation }) => {
             />
             
             <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
-              <Ionicons 
-                name={verPassword ? "eye-outline" : "eye-off-outline"} 
-                size={20} 
-                color="#888" 
+              <Ionicons
+                name={verPassword ? "eye-outline" : "eye-off-outline"}
+                size={20}
+                color="#0B2E59"
               />
             </TouchableOpacity>
           </View>
@@ -126,12 +128,12 @@ const Login = ({ navigation }) => {
             onPress={() => navigation.navigate('LoginAdmin')}
           >
             <View style={styles.adminRow}>
-              <Ionicons name="shield-checkmark-outline" size={22} color="#0B2E59" style={{ marginRight: 10 }} />
+              <Ionicons name="shield-checkmark-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.adminTitle}>Acceso de administrador</Text>
                 <Text style={styles.adminSub}>Solo para personal autorizado.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#888" />
+              <Ionicons name="chevron-forward" size={18} color="#FFF" />
             </View>
           </TouchableOpacity>
 
@@ -270,12 +272,12 @@ const styles = StyleSheet.create({
   textoRegistro: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#0B2E59',
   },
  
   adminCard: {
-    backgroundColor: '#F8F9FA',
-    borderColor: '#E2E8F0',
+    backgroundColor: '#0B2E59',
+    borderColor: '#0B2E59',
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 20,
@@ -286,12 +288,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   adminTitle: {
-    color: '#0B2E59',
+    color: '#FFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
   adminSub: {
-    color: '#666',
+    color: '#D7E4F2',
     fontSize: 11,
     marginTop: 2,
   },

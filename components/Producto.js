@@ -36,6 +36,6 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#1E88E5',
+    color: '#0B2E59',
   },
 });

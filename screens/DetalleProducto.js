@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDoc, onSnapshot, query, runTransaction, where } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 const sinCamposDeFecha = (resena) => Object.fromEntries(
   Object.entries(resena).filter(([campo]) => (
@@ -12,9 +13,13 @@ const sinCamposDeFecha = (resena) => Object.fromEntries(
 );
 
 export default function DetalleProducto({ route, navigation }) {
+  const Alert = useAppAlert();
   const { producto } = route.params || {};
 
   const [cantidad, setCantidad] = useState(1);
+  const [stockDisponible, setStockDisponible] = useState(
+    Math.max(0, Math.floor(Number(producto?.stock) || 0))
+  );
   const [promedioCalificacion, setPromedioCalificacion] = useState(
     Number(producto?.promedioCalificacion) || 0
   );
@@ -22,9 +27,8 @@ export default function DetalleProducto({ route, navigation }) {
     Number(producto?.cantidadCalificaciones) || 0
   );
   const [calificacionSeleccionada, setCalificacionSeleccionada] = useState(0);
-  const [guardandoCalificacion, setGuardandoCalificacion] = useState(false);
+  const [guardandoResena, setGuardandoResena] = useState(false);
   const [comentario, setComentario] = useState('');
-  const [guardandoComentario, setGuardandoComentario] = useState(false);
   const [comentariosProducto, setComentariosProducto] = useState([]);
   const [cargandoComentarios, setCargandoComentarios] = useState(true);
   const [errorComentarios, setErrorComentarios] = useState(false);
@@ -36,8 +40,13 @@ export default function DetalleProducto({ route, navigation }) {
     return onSnapshot(doc(db, 'productos', String(productoId)), (snapshot) => {
       if (snapshot.exists()) {
         const datosProducto = snapshot.data();
+        const stockActual = Math.max(0, Math.floor(Number(datosProducto.stock) || 0));
+        setStockDisponible(stockActual);
+        setCantidad((actual) => (stockActual > 0 ? Math.min(actual, stockActual) : actual));
         setPromedioCalificacion(Number(datosProducto.promedioCalificacion) || 0);
         setCantidadCalificaciones(Number(datosProducto.cantidadCalificaciones) || 0);
+      } else {
+        setStockDisponible(0);
       }
     }, (error) => {
       console.error('Error al cargar las calificaciones del producto: ', error);
@@ -58,11 +67,14 @@ export default function DetalleProducto({ route, navigation }) {
       where('productoId', '==', String(productoId))
     );
     return onSnapshot(consultaResenas, (snapshot) => {
-      const comentarios = snapshot.docs
+      const resenas = snapshot.docs
         .map((resenaDoc) => ({ id: resenaDoc.id, ...resenaDoc.data() }))
-        .filter((resena) => typeof resena.comentario === 'string' && resena.comentario.trim())
+        .filter((resena) => (
+          (Number(resena.calificacion) >= 1 && Number(resena.calificacion) <= 5)
+          || (typeof resena.comentario === 'string' && resena.comentario.trim())
+        ))
         .sort((a, b) => (b.fechaComentario?.toMillis?.() || 0) - (a.fechaComentario?.toMillis?.() || 0));
-      setComentariosProducto(comentarios);
+      setComentariosProducto(resenas);
       setCargandoComentarios(false);
     }, (error) => {
       console.error('Error al cargar comentarios del producto: ', error);
@@ -75,16 +87,18 @@ export default function DetalleProducto({ route, navigation }) {
     let activo = true;
     const cargarCalificacionUsuario = async () => {
       const usuario = auth.currentUser;
+      setCalificacionSeleccionada(0);
       if (!productoId || !usuario) {
-        setCalificacionSeleccionada(0);
         return;
       }
 
       try {
         const resenaRef = doc(db, 'resenas', `${productoId}_${usuario.uid}`);
         const resenaSnapshot = await getDoc(resenaRef);
-        if (activo && resenaSnapshot.exists()) {
-          setCalificacionSeleccionada(Number(resenaSnapshot.data().calificacion) || 0);
+        if (activo) {
+          const resenaUsuario = resenaSnapshot.exists() ? resenaSnapshot.data() : {};
+          setCalificacionSeleccionada(Number(resenaUsuario.calificacion) || 0);
+          setComentario(resenaUsuario.comentario || '');
         }
       } catch (error) {
         console.error('Error al cargar tu calificación: ', error);
@@ -99,29 +113,38 @@ export default function DetalleProducto({ route, navigation }) {
     };
   }, [productoId]);
 
-  const incrementar = () => setCantidad(cantidad + 1);
+  const incrementar = () => {
+    if (stockDisponible > 0) {
+      setCantidad((actual) => Math.min(actual + 1, stockDisponible));
+    }
+  };
   const decrementar = () => {
     if (cantidad > 1) {
       setCantidad(cantidad - 1);
     }
   };
 
-  const guardarCalificacion = async () => {
+  const guardarResena = async () => {
     const usuario = auth.currentUser;
     if (!usuario) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para calificar este producto.');
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para dejar una reseña.');
       return;
     }
     if (!productoId) {
-      Alert.alert('Error', 'No se pudo identificar el producto para guardar la calificación.');
+      Alert.alert('Error', 'No se pudo identificar el producto para guardar la reseña.');
       return;
     }
     if (calificacionSeleccionada < 1 || calificacionSeleccionada > 5) {
-      Alert.alert('Selecciona una calificación', 'Elige de 1 a 5 estrellas antes de guardar.');
+      Alert.alert('Selecciona una calificación', 'Elige de 1 a 5 estrellas para tu reseña.');
+      return;
+    }
+    const comentarioLimpio = comentario.trim();
+    if (!comentarioLimpio) {
+      Alert.alert('Comentario vacío', 'Escribe un comentario para completar tu reseña.');
       return;
     }
 
-    setGuardandoCalificacion(true);
+    setGuardandoResena(true);
     try {
       const productoRef = doc(db, 'productos', String(productoId));
       const resenaRef = doc(db, 'resenas', `${productoId}_${usuario.uid}`);
@@ -149,67 +172,40 @@ export default function DetalleProducto({ route, navigation }) {
         transaction.set(resenaRef, {
           ...(resenaSnapshot.exists() ? sinCamposDeFecha(resenaSnapshot.data()) : {}),
           productoId: String(productoId),
+          nombreProducto: producto?.nombre || producto?.Nombre || 'Producto',
           usuarioId: usuario.uid,
           correoUsuario: usuario.email || '',
           calificacion: calificacionSeleccionada,
+          comentario: comentarioLimpio,
         });
         transaction.update(productoRef, {
           promedioCalificacion: nuevaCantidad ? nuevaSuma / nuevaCantidad : 0,
           cantidadCalificaciones: nuevaCantidad,
         });
       });
-
-      Alert.alert('Gracias', 'Tu calificación se guardó correctamente.');
-    } catch (error) {
-      console.error('Error al guardar la calificación: ', error);
-      Alert.alert('Error', 'No se pudo guardar tu calificación.');
-    } finally {
-      setGuardandoCalificacion(false);
-    }
-  };
-
-  const guardarComentario = async () => {
-    const usuario = auth.currentUser;
-    const comentarioLimpio = comentario.trim();
-
-    if (!usuario) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para comentar este producto.');
-      return;
-    }
-    if (!productoId) {
-      Alert.alert('Error', 'No se pudo identificar el producto para guardar el comentario.');
-      return;
-    }
-    if (!comentarioLimpio) {
-      Alert.alert('Comentario vacío', 'Escribe un comentario antes de guardarlo.');
-      return;
-    }
-
-    setGuardandoComentario(true);
-    try {
-      const resenaRef = doc(db, 'resenas', `${productoId}_${usuario.uid}`);
-      await runTransaction(db, async (transaction) => {
-        const resenaSnapshot = await transaction.get(resenaRef);
-        transaction.set(resenaRef, {
-          ...(resenaSnapshot.exists() ? sinCamposDeFecha(resenaSnapshot.data()) : {}),
-          productoId: String(productoId),
-          nombreProducto: producto?.nombre || producto?.Nombre || 'Producto',
-          usuarioId: usuario.uid,
-          correoUsuario: usuario.email || '',
-          comentario: comentarioLimpio,
-        });
-      });
       setComentario('');
-      Alert.alert('Gracias', 'Tu comentario se guardó correctamente.');
+      Alert.alert('Gracias', 'Tu reseña se guardó correctamente.');
     } catch (error) {
-      console.error('Error al guardar el comentario: ', error);
-      Alert.alert('Error', 'No se pudo guardar tu comentario.');
+      console.error('Error al guardar la reseña: ', error);
+      Alert.alert('Error', 'No se pudo guardar tu reseña.');
     } finally {
-      setGuardandoComentario(false);
+      setGuardandoResena(false);
     }
   };
 
   const handleAgregarAlCarrito = () => {
+    if (stockDisponible < 1) {
+      Alert.alert('Producto agotado', 'Este producto ya no tiene unidades disponibles.');
+      return;
+    }
+    if (cantidad > stockDisponible) {
+      Alert.alert(
+        'Stock insuficiente',
+        `Solo quedan ${stockDisponible} unidades disponibles de este producto.`
+      );
+      return;
+    }
+
     const productoParaCarrito = {
       id: producto?.id || Math.random().toString(),
       nombre: producto?.nombre || producto?.Nombre,
@@ -245,8 +241,16 @@ export default function DetalleProducto({ route, navigation }) {
         <View style={styles.card}>
           <View style={styles.rowTop}>
             <View style={styles.stockBadge}>
-              <Ionicons name="checkmark-circle-outline" size={14} color="#2E7D32" />
-              <Text style={styles.stockText}> En Stock ({producto?.stock || 0} unidades)</Text>
+              <Ionicons
+                name={stockDisponible > 0 ? 'checkmark-circle-outline' : 'close-circle-outline'}
+                size={14}
+                color={stockDisponible > 0 ? '#2E7D32' : '#E63946'}
+              />
+              <Text style={[styles.stockText, stockDisponible < 1 && styles.stockAgotado]}>
+                {stockDisponible > 0
+                  ? ` En Stock (${stockDisponible} unidades)`
+                  : ' Agotado'}
+              </Text>
             </View>
             <Text style={styles.codigoText}>Cód: {producto?.codigo || 'TW-20V-92'}</Text>
           </View>
@@ -257,6 +261,21 @@ export default function DetalleProducto({ route, navigation }) {
           <View style={styles.ratingSection}>
             <View style={styles.ratingContainer}>
               {[1, 2, 3, 4, 5].map((estrella) => (
+                <Ionicons
+                  key={estrella}
+                  name={estrella <= Math.round(promedioCalificacion) ? 'star' : 'star-outline'}
+                  size={24}
+                  color={estrella <= Math.round(promedioCalificacion) ? '#FFB300' : '#CCC'}
+                />
+              ))}
+              <Text style={styles.ratingText}>
+                {promedioCalificacion.toFixed(1)}
+                <Text style={styles.ratingSub}> ({cantidadCalificaciones} calificaciones)</Text>
+              </Text>
+            </View>
+            <View style={styles.ratingContainer}>
+              <Text style={styles.ratingPrompt}>Califica:</Text>
+              {[1, 2, 3, 4, 5].map((estrella) => (
                 <TouchableOpacity
                   key={estrella}
                   onPress={() => setCalificacionSeleccionada(estrella)}
@@ -264,7 +283,7 @@ export default function DetalleProducto({ route, navigation }) {
                   accessibilityLabel={`Calificar con ${estrella} ${estrella === 1 ? 'estrella' : 'estrellas'}`}
                   accessibilityState={{ selected: calificacionSeleccionada === estrella }}
                   hitSlop={6}
-                  disabled={guardandoCalificacion}
+                  disabled={guardandoResena}
                 >
                   <Ionicons
                     name={estrella <= calificacionSeleccionada ? 'star' : 'star-outline'}
@@ -273,28 +292,6 @@ export default function DetalleProducto({ route, navigation }) {
                   />
                 </TouchableOpacity>
               ))}
-              <Text style={styles.ratingText}>
-                {promedioCalificacion.toFixed(1)}
-                <Text style={styles.ratingSub}> ({cantidadCalificaciones} calificaciones)</Text>
-              </Text>
-            </View>
-            <View style={styles.ratingAction}>
-              <Text style={styles.ratingPrompt}>
-                {calificacionSeleccionada
-                  ? `Tu calificación: ${calificacionSeleccionada} de 5`
-                  : 'Toca las estrellas para calificar'}
-              </Text>
-              <TouchableOpacity
-                style={[styles.ratingButton, guardandoCalificacion && styles.ratingButtonDisabled]}
-                onPress={guardarCalificacion}
-                disabled={guardandoCalificacion}
-              >
-                {guardandoCalificacion ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.ratingButtonText}>Guardar calificación</Text>
-                )}
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -304,45 +301,53 @@ export default function DetalleProducto({ route, navigation }) {
 
             <View style={styles.counterContainer}>
               <TouchableOpacity onPress={decrementar} style={styles.counterButton}>
-                <Ionicons name="remove" size={16} color="#333" />
+                <Ionicons name="remove" size={16} color="#FFF" />
               </TouchableOpacity>
               <Text style={styles.counterValue}>{cantidad}</Text>
-              <TouchableOpacity onPress={incrementar} style={styles.counterButton}>
-                <Ionicons name="add" size={16} color="#333" />
+              <TouchableOpacity
+                onPress={incrementar}
+                style={styles.counterButton}
+                disabled={stockDisponible === 0 || cantidad >= stockDisponible}
+              >
+                <Ionicons
+                  name="add"
+                  size={16}
+                  color="#FFF"
+                />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.commentSection}>
-            <Text style={styles.commentTitle}>Agregar comentario</Text>
+            <Text style={styles.commentTitle}>Tu reseña</Text>
             <TextInput
               style={styles.commentInput}
-              placeholder="Escribe tu comentario sobre este producto"
+              placeholder="Cuéntanos qué te pareció este producto"
               placeholderTextColor="#8A929E"
               value={comentario}
               onChangeText={setComentario}
               multiline
               maxLength={500}
-              editable={!guardandoComentario}
-              accessibilityLabel="Comentario del producto"
+              editable={!guardandoResena}
+              accessibilityLabel="Comentario de tu reseña"
             />
             <TouchableOpacity
-              style={[styles.commentButton, guardandoComentario && styles.ratingButtonDisabled]}
-              onPress={guardarComentario}
-              disabled={guardandoComentario}
+              style={[styles.commentButton, guardandoResena && styles.ratingButtonDisabled]}
+              onPress={guardarResena}
+              disabled={guardandoResena}
             >
-              {guardandoComentario ? (
+              {guardandoResena ? (
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <>
-                  <Ionicons name="chatbubble-outline" size={17} color="#FFF" />
-                  <Text style={styles.commentButtonText}>Guardar comentario</Text>
+                  <Ionicons name="star-outline" size={17} color="#FFF" />
+                  <Text style={styles.commentButtonText}>Guardar reseña</Text>
                 </>
               )}
             </TouchableOpacity>
-            <Text style={styles.commentsHeading}>Comentarios del producto</Text>
+            <Text style={styles.commentsHeading}>Reseñas del producto</Text>
             {cargandoComentarios ? (
-              <ActivityIndicator size="small" color="#1E88E5" style={styles.commentsLoader} />
+              <ActivityIndicator size="small"               color="#0B2E59" style={styles.commentsLoader} />
             ) : errorComentarios ? (
               <Text style={styles.noCommentsText}>No se pudieron cargar los comentarios.</Text>
             ) : comentariosProducto.length === 0 ? (
@@ -351,12 +356,26 @@ export default function DetalleProducto({ route, navigation }) {
               comentariosProducto.map((resena) => (
                 <View key={resena.id} style={styles.commentCard}>
                   <View style={styles.commentAuthorRow}>
-                    <Ionicons name="person-circle-outline" size={20} color="#1E88E5" />
+                    <Ionicons name="person-circle-outline" size={20}                     color="#0B2E59" />
                     <Text style={styles.commentAuthor}>
                       {resena.correoUsuario || 'Usuario'}
                     </Text>
                   </View>
-                  <Text style={styles.commentBody}>{resena.comentario}</Text>
+                  {Number(resena.calificacion) >= 1 && (
+                    <View style={styles.reviewStars}>
+                      {[1, 2, 3, 4, 5].map((estrella) => (
+                        <Ionicons
+                          key={estrella}
+                          name={estrella <= Number(resena.calificacion) ? 'star' : 'star-outline'}
+                          size={16}
+                          color={estrella <= Number(resena.calificacion) ? '#FFB300' : '#CCC'}
+                        />
+                      ))}
+                    </View>
+                  )}
+                  {resena.comentario ? (
+                    <Text style={styles.commentBody}>{resena.comentario}</Text>
+                  ) : null}
                 </View>
               ))
             )}
@@ -369,11 +388,14 @@ export default function DetalleProducto({ route, navigation }) {
       {/* BOTÓN INFERIOR FIJO: AGREGAR AL CARRITO */}
       <View style={styles.footerContainer}>
         <TouchableOpacity 
-          style={styles.addToCartButton} 
+          style={[styles.addToCartButton, stockDisponible < 1 && styles.addToCartButtonDisabled]}
           onPress={handleAgregarAlCarrito}
+          disabled={stockDisponible < 1}
         >
-          <Ionicons name="cart" size={20} color="#FFF" />
-          <Text style={styles.addToCartText}>Agregar al Carrito</Text>
+          <Ionicons name={stockDisponible > 0 ? 'cart' : 'close-circle-outline'} size={20} color="#FFF" />
+          <Text style={styles.addToCartText}>
+            {stockDisponible > 0 ? 'Agregar al Carrito' : 'Agotado'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -382,11 +404,15 @@ export default function DetalleProducto({ route, navigation }) {
 const styles = StyleSheet.create({
   addToCartButton: { 
     alignItems: 'center', 
-    backgroundColor: '#1E88E5', 
+    backgroundColor: '#0B2E59',
     borderRadius: 10, 
     flexDirection: 'row', 
     justifyContent: 'center', 
     padding: 14 
+  },
+  addToCartButtonDisabled: {
+    backgroundColor: '#0B2E59',
+    opacity: 0.55,
   },
   addToCartText: { 
     color: '#FFF', 
@@ -426,7 +452,7 @@ const styles = StyleSheet.create({
   commentButton: {
     alignItems: 'center',
     alignSelf: 'flex-end',
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#0B2E59',
     borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -463,6 +489,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 10,
   },
+  reviewStars: {
+    flexDirection: 'row',
+    marginBottom: 5,
+  },
   commentAuthorRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -488,6 +518,8 @@ const styles = StyleSheet.create({
     flex: 1 
   },
   counterButton: { 
+    alignItems: 'center',
+    backgroundColor: '#0B2E59',
     padding: 8, 
     paddingHorizontal: 12 
   },
@@ -525,7 +557,7 @@ const styles = StyleSheet.create({
     padding: 16 
   },
   precio: { 
-    color: '#1E88E5', 
+    color: '#0B2E59',
     fontSize: 22, 
     fontWeight: 'bold' 
   },
@@ -560,33 +592,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 6,
   },
-  ratingAction: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
   ratingPrompt: {
     color: '#666',
-    flex: 1,
     fontSize: 12,
     marginRight: 8,
   },
-  ratingButton: {
-    alignItems: 'center',
-    backgroundColor: '#1E88E5',
-    borderRadius: 8,
-    minWidth: 140,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
   ratingButtonDisabled: {
     opacity: 0.65,
-  },
-  ratingButtonText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   rowTop: { 
     alignItems: 'center', 
@@ -610,5 +622,8 @@ const styles = StyleSheet.create({
     color: '#2E7D32', 
     fontSize: 12, 
     fontWeight: '500' 
+  },
+  stockAgotado: {
+    color: '#E63946',
   },
 });

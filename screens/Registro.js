@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { doc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 export default function Registro({ navigation }) {
+  const Alert = useAppAlert();
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [cedula, setCedula] = useState('');
@@ -171,7 +173,7 @@ export default function Registro({ navigation }) {
 
       {/* Botón de Registro */}
       <TouchableOpacity 
-        style={[styles.botonRegistrar, cargando && { backgroundColor: '#90CAF9' }]} 
+        style={styles.botonRegistrar}
         onPress={handleRegistrar}
         disabled={cargando}
       >
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   botonRegistrar: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#0B2E59',
     flexDirection: 'row',
     height: 50,
     borderRadius: 8,

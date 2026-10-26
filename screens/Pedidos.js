@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   ActivityIndicator,
   Image,
   ScrollView,
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 const obtenerDireccion = (direccion) => {
   if (!direccion) return 'Dirección no disponible';
@@ -43,6 +43,7 @@ const obtenerEstiloEstado = (estado) => {
 };
 
 export default function Pedidos() {
+  const Alert = useAppAlert();
   const [pedidos, setPedidos] = useState([]);
   const [usuarioId, setUsuarioId] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -105,7 +106,7 @@ export default function Pedidos() {
   if (cargando) {
     return (
       <View style={styles.estadoPantalla}>
-        <ActivityIndicator size="large" color="#1E88E5" />
+        <ActivityIndicator size="large" color="#0B2E59" />
       </View>
     );
   }
@@ -193,7 +194,7 @@ export default function Pedidos() {
               ))}
 
               <View style={styles.direccionPedido}>
-                <Ionicons name="location-outline" size={18} color="#1E88E5" />
+                <Ionicons name="location-outline" size={18} color="#0B2E59" />
                 <Text style={styles.textoDireccion} numberOfLines={3}>
                   {obtenerDireccion(pedido.direccion)}
                 </Text>
@@ -203,8 +204,13 @@ export default function Pedidos() {
 
               {pedido.mensajeCliente && (
                 <View style={styles.mensajeEstado}>
-                  <Ionicons name="notifications-outline" size={18} color="#1E67A5" />
-                  <Text style={styles.mensajeEstadoTexto}>{pedido.mensajeCliente}</Text>
+                  <View style={styles.mensajeEstadoIcono}>
+                    <Ionicons name="notifications-outline" size={18} color="#0B2E59" />
+                  </View>
+                  <View style={styles.mensajeEstadoContenido}>
+                    <Text style={styles.mensajeEstadoTitulo}>Actualización del pedido</Text>
+                    <Text style={styles.mensajeEstadoTexto}>{pedido.mensajeCliente}</Text>
+                  </View>
                 </View>
               )}
 
@@ -230,7 +236,7 @@ export default function Pedidos() {
                       accessibilityState={{ selected: seleccionado, disabled: pedidoActualizando === pedido.id }}
                     >
                       {pedidoActualizando === pedido.id ? (
-                        <ActivityIndicator size="small" color={seleccionado ? '#FFF' : '#1E88E5'} />
+                        <ActivityIndicator size="small" color={seleccionado ? '#FFF' : '#0B2E59'} />
                       ) : (
                         <Text style={[
                           styles.botonConfirmacionTexto,
@@ -293,7 +299,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   contadorTexto: {
-    color: '#1E88E5',
+    color: '#0B2E59',
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -420,24 +426,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   totalPedido: {
-    color: '#1E88E5',
+    color: '#0B2E59',
     fontSize: 17,
     fontWeight: 'bold',
   },
   mensajeEstado: {
-    alignItems: 'flex-start',
-    backgroundColor: '#EAF4FF',
-    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F1F6FC',
+    borderLeftColor: '#0B2E59',
+    borderLeftWidth: 4,
+    borderRadius: 12,
     flexDirection: 'row',
     marginBottom: 10,
-    padding: 10,
+    padding: 12,
+  },
+  mensajeEstadoIcono: {
+    alignItems: 'center',
+    backgroundColor: '#E1EBF7',
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    marginRight: 10,
+    width: 36,
+  },
+  mensajeEstadoContenido: {
+    flex: 1,
+  },
+  mensajeEstadoTitulo: {
+    color: '#0B2E59',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 3,
   },
   mensajeEstadoTexto: {
-    color: '#28577C',
+    color: '#52647A',
     flex: 1,
     fontSize: 12,
     lineHeight: 17,
-    marginLeft: 7,
   },
   confirmacionTitulo: {
     color: '#495464',
@@ -451,7 +476,7 @@ const styles = StyleSheet.create({
   },
   botonConfirmacion: {
     alignItems: 'center',
-    borderColor: '#1E88E5',
+    borderColor: '#0B2E59',
     borderRadius: 8,
     borderWidth: 1,
     flex: 1,
@@ -461,10 +486,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   botonConfirmacionActivo: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#0B2E59',
   },
   botonConfirmacionTexto: {
-    color: '#1E88E5',
+    color: '#0B2E59',
     fontSize: 13,
     fontWeight: '600',
   },

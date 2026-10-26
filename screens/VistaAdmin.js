@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../firebase/config';
 import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { useAppAlert } from '../components/AppAlert';
 
 export default function VistaAdmin({ navigation }) {
+  const Alert = useAppAlert();
   const [productos, setProductos] = useState([]);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export default function VistaAdmin({ navigation }) {
                 style={styles.btnIcono}
                 onPress={() => navigation.navigate('nuevoProducto', { producto: item })}
               >
-                <Ionicons name="pencil" size={18} color="#0B2E59" />
+                <Ionicons name="pencil" size={18} color="#FFF" />
               </TouchableOpacity>
 
               {/* Botón Eliminar */}
@@ -78,7 +80,7 @@ export default function VistaAdmin({ navigation }) {
                 style={styles.btnIcono}
                 onPress={() => eliminarProducto(item.idDoc, item.nombre)}
               >
-                <Ionicons name="trash" size={18} color="#E63946" />
+                <Ionicons name="trash" size={18} color="#FFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -133,7 +135,7 @@ const styles = StyleSheet.create({
   precio: { 
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E88E5', 
+    color: '#0B2E59',
     marginBottom: 4,
   },
   detalle: {
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnIcono: { 
-    backgroundColor: '#F1F2F6', 
+    backgroundColor: '#0B2E59',
     padding: 10, 
     borderRadius: 25,
     elevation: 1,

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDocs, onSnapshot, runTransaction, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 const migrarCarritoAnterior = async (usuarioRef, usuarioId) => {
   const carritoAnteriorRef = collection(db, 'usuario', usuarioId, 'carrito');
@@ -36,6 +37,7 @@ const migrarCarritoAnterior = async (usuarioRef, usuarioId) => {
 };
 
 export default function Carrito({ route, navigation }) {
+  const Alert = useAppAlert();
   const [carrito, setCarrito] = useState([]);
   const [productosNoSeleccionados, setProductosNoSeleccionados] = useState(new Set());
   const [usuarioId, setUsuarioId] = useState(auth.currentUser?.uid || null);
@@ -258,17 +260,17 @@ export default function Carrito({ route, navigation }) {
       {/* Cabecera */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#0B2E59" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mi Carrito ({carrito.length})</Text>
         <TouchableOpacity onPress={vaciarCarrito} disabled={carrito.length === 0}>
-          <Ionicons name="trash-outline" size={22} color="#E53935" />
+          <Ionicons name="trash-outline" size={22} color="#0B2E59" />
         </TouchableOpacity>
       </View>
 
       {cargando ? (
         <View style={styles.vacioContainer}>
-          <ActivityIndicator size="large" color="#1E88E5" />
+          <ActivityIndicator size="large" color="#0B2E59" />
         </View>
       ) : !usuarioId ? (
         <View style={styles.vacioContainer}>
@@ -286,7 +288,7 @@ export default function Carrito({ route, navigation }) {
             <Ionicons
               name={productosNoSeleccionados.size === 0 ? 'checkbox' : 'square-outline'}
               size={22}
-              color="#1E88E5"
+              color="#0B2E59"
             />
             <Text style={styles.seleccionarTodoTexto}>
               {productosNoSeleccionados.size === 0 ? 'Quitar selección' : 'Seleccionar todos'}
@@ -311,7 +313,7 @@ export default function Carrito({ route, navigation }) {
                   <Ionicons
                     name={productosNoSeleccionados.has(item.id) ? 'square-outline' : 'checkbox'}
                     size={22}
-                    color="#1E88E5"
+                    color="#0B2E59"
                   />
                 </TouchableOpacity>
                 <Image source={{ uri: item.imagen }} style={styles.image} resizeMode="contain" />
@@ -320,7 +322,7 @@ export default function Carrito({ route, navigation }) {
                   <View style={styles.rowTop}>
                     <Text style={styles.nombreProducto} numberOfLines={2}>{item.nombre}</Text>
                     <TouchableOpacity onPress={() => eliminarProducto(item.id)}>
-                      <Ionicons name="trash-bin-outline" size={18} color="#999" />
+                      <Ionicons name="trash-bin-outline" size={18} color="#0B2E59" />
                     </TouchableOpacity>
                   </View>
 
@@ -477,7 +479,7 @@ const styles = StyleSheet.create({
   },
   precioUnitario: {
     fontSize: 13,
-    color: '#007AFF',
+    color: '#0B2E59',
     fontWeight: '600',
     marginTop: 2,
   },
@@ -505,13 +507,13 @@ const styles = StyleSheet.create({
   },
   btnContador: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    backgroundColor: '#F1F3F5',
+    paddingVertical: 4,
+    backgroundColor: '#0B2E59',
   },
   btnContadorTexto: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFF',
   },
   cantidadTexto: {
     paddingHorizontal: 10,
@@ -556,10 +558,10 @@ const styles = StyleSheet.create({
   totalNetoValor: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#0B2E59',
   },
   botonPagar: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0B2E59',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

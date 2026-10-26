@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore'; // 👈 1. Importamos funciones de Firestore
 import { auth, db } from '../firebase/config';      // 👈 2. Importamos 'db'
+import { useAppAlert } from '../components/AppAlert';
 
 const LoginAdmin = ({ navigation }) => {
+  const Alert = useAppAlert();
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [verPassword, setVerPassword] = useState(false);
@@ -137,10 +139,10 @@ const LoginAdmin = ({ navigation }) => {
               onChangeText={setPassword}
             />
             <TouchableOpacity onPress={() => setVerPassword(!verPassword)}>
-              <Ionicons 
-                name={verPassword ? "eye-outline" : "eye-off-outline"} 
-                size={20} 
-                color="#888" 
+              <Ionicons
+                name={verPassword ? "eye-outline" : "eye-off-outline"}
+                size={20}
+                color="#0B2E59"
               />
             </TouchableOpacity>
           </View>

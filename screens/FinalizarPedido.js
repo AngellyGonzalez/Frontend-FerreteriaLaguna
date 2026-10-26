@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 export default function FinalizarPedido({ route, navigation }) {
+  const Alert = useAppAlert();
   // Recibimos los datos enviados desde el Carrito
   const { productosCarrito = [], costoEnvio = 50 } = route.params || {};
   const subtotal = productosCarrito.reduce(
@@ -98,7 +100,19 @@ export default function FinalizarPedido({ route, navigation }) {
         nombre: producto.nombre || 'Producto',
         imagen: producto.imagen || '',
         precio: Number(producto.precio) || 0,
-        cantidad: Number(producto.cantidad) || 1,
+        cantidad: Math.max(1, Math.floor(Number(producto.cantidad) || 1)),
+      }));
+      const cantidadesPorProducto = new Map();
+      productosPedido.forEach((producto) => {
+        cantidadesPorProducto.set(
+          producto.id,
+          (cantidadesPorProducto.get(producto.id) || 0) + producto.cantidad
+        );
+      });
+      const productosAValidar = [...cantidadesPorProducto.entries()].map(([id, cantidad]) => ({
+        id,
+        cantidad,
+        referencia: doc(db, 'productos', id),
       }));
       const pedido = {
         usuarioId: usuario.uid,
@@ -124,11 +138,39 @@ export default function FinalizarPedido({ route, navigation }) {
           throw new Error('No se encontró el perfil del usuario para guardar el pedido.');
         }
 
+        const snapshotsProductos = await Promise.all(
+          productosAValidar.map((producto) => transaction.get(producto.referencia))
+        );
+        snapshotsProductos.forEach((productoSnapshot, indice) => {
+          const producto = productosAValidar[indice];
+          const datosProducto = productoSnapshot.exists() ? productoSnapshot.data() : null;
+          const stockActual = Math.max(0, Math.floor(Number(datosProducto?.stock) || 0));
+
+          if (!datosProducto || stockActual < producto.cantidad) {
+            const errorStock = new Error(
+              !datosProducto
+                ? `${productosPedido.find((item) => item.id === producto.id)?.nombre || 'El producto'} ya no está disponible.`
+                : stockActual === 0
+                  ? `${productosPedido.find((item) => item.id === producto.id)?.nombre || 'El producto'} está agotado.`
+                  : `Solo quedan ${stockActual} unidades de ${productosPedido.find((item) => item.id === producto.id)?.nombre || 'este producto'}.`
+            );
+            errorStock.code = 'stock-insuficiente';
+            throw errorStock;
+          }
+        });
+
         const carritoActual = usuarioSnapshot.data().carrito || {};
         const carritoRestante = Object.fromEntries(
           Object.entries(carritoActual).filter(([id]) => !productosCompradosIds.has(id))
         );
 
+        snapshotsProductos.forEach((productoSnapshot, indice) => {
+          const producto = productosAValidar[indice];
+          const stockActual = Math.max(0, Math.floor(Number(productoSnapshot.data().stock) || 0));
+          transaction.update(producto.referencia, {
+            stock: stockActual - producto.cantidad,
+          });
+        });
         transaction.set(pedidoRef, pedido);
         transaction.update(usuarioRef, { carrito: carritoRestante });
       });
@@ -141,7 +183,11 @@ export default function FinalizarPedido({ route, navigation }) {
       ]);
     } catch (error) {
       console.error('Error al registrar el pedido: ', error);
-      Alert.alert('Error', 'No se pudo registrar el pedido. Inténtalo de nuevo.');
+      if (error.code === 'stock-insuficiente') {
+        Alert.alert('Stock no disponible', error.message);
+      } else {
+        Alert.alert('Error', 'No se pudo registrar el pedido. Inténtalo de nuevo.');
+      }
     } finally {
       setGuardandoPedido(false);
     }
@@ -162,7 +208,7 @@ export default function FinalizarPedido({ route, navigation }) {
         {/* SECCIÓN: DIRECCIÓN DE ENTREGA */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="location-outline" size={20} color="#1E88E5" />
+            <Ionicons name="location-outline" size={20} color="#0B2E59" />
             <Text style={styles.cardTitle}>Dirección de Entrega</Text>
           </View>
 
@@ -173,7 +219,7 @@ export default function FinalizarPedido({ route, navigation }) {
             disabled={cargandoDirecciones || direccionesGuardadas.length === 0}
           >
             {cargandoDirecciones ? (
-              <ActivityIndicator size="small" color="#1E88E5" />
+              <ActivityIndicator size="small" color="#0B2E59" />
             ) : (
               <>
                 <Text style={styles.selectorDireccionTexto}>
@@ -186,7 +232,7 @@ export default function FinalizarPedido({ route, navigation }) {
                 <Ionicons
                   name={mostrarDirecciones ? 'chevron-up' : 'chevron-down'}
                   size={18}
-                  color="#666"
+                  color="#FFF"
                 />
               </>
             )}
@@ -206,10 +252,16 @@ export default function FinalizarPedido({ route, navigation }) {
                     accessibilityState={{ selected: seleccionada }}
                   >
                     <View style={styles.opcionDireccionTexto}>
-                      <Text style={styles.opcionDireccionPrincipal}>
+                      <Text style={[
+                        styles.opcionDireccionPrincipal,
+                        seleccionada && styles.opcionDireccionTextoSeleccionada,
+                      ]}>
                         {direccionGuardada.direccion || 'Dirección sin detalle'}
                       </Text>
-                      <Text style={styles.opcionDireccionSecundaria}>
+                      <Text style={[
+                        styles.opcionDireccionSecundaria,
+                        seleccionada && styles.opcionDireccionTextoSeleccionada,
+                      ]}>
                         {[direccionGuardada.barrio, municipioGuardado, direccionGuardada.departamento]
                           .filter(Boolean)
                           .join(', ')}
@@ -218,7 +270,7 @@ export default function FinalizarPedido({ route, navigation }) {
                     <Ionicons
                       name={seleccionada ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color={seleccionada ? '#1E88E5' : '#999'}
+                      color={seleccionada ? '#0B2E59' : '#999'}
                     />
                   </TouchableOpacity>
                 );
@@ -252,7 +304,7 @@ export default function FinalizarPedido({ route, navigation }) {
         {/* SECCIÓN: MÉTODO DE PAGO */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="card-outline" size={20} color="#1E88E5" />
+            <Ionicons name="card-outline" size={20} color="#0B2E59" />
             <Text style={styles.cardTitle}>Método de Pago (Tarjeta)</Text>
           </View>
 
@@ -328,7 +380,7 @@ const styles = StyleSheet.create({
   backButton: { marginRight: 10 },
   botonConfirmar: {
     alignItems: 'center',
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#0B2E59',
     borderRadius: 10,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -394,8 +446,8 @@ const styles = StyleSheet.create({
   },
   selectorDireccion: {
     alignItems: 'center',
-    backgroundColor: '#F9F9F9',
-    borderColor: '#DDD',
+    backgroundColor: '#0B2E59',
+    borderColor: '#0B2E59',
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: 'row',
@@ -405,7 +457,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   selectorDireccionTexto: {
-    color: '#1E88E5',
+    color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -415,7 +467,7 @@ const styles = StyleSheet.create({
   opcionDireccion: {
     alignItems: 'center',
     backgroundColor: '#FFF',
-    borderColor: '#DDD',
+    borderColor: '#0B2E59',
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: 'row',
@@ -423,15 +475,15 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   opcionDireccionSeleccionada: {
-    borderColor: '#1E88E5',
-    backgroundColor: '#F1F8FF',
+    borderColor: '#0B2E59',
+    backgroundColor: '#0B2E59',
   },
   opcionDireccionTexto: {
     flex: 1,
     marginRight: 8,
   },
   opcionDireccionPrincipal: {
-    color: '#333',
+    color: '#0B2E59',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -439,6 +491,9 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 12,
     marginTop: 3,
+  },
+  opcionDireccionTextoSeleccionada: {
+    color: '#FFF',
   },
   label: {
     color: '#666',
@@ -475,7 +530,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   totalFinalValor: {
-    color: '#1E88E5',
+    color: '#0B2E59',
     fontSize: 16,
     fontWeight: 'bold',
   },

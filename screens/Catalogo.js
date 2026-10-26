@@ -82,7 +82,7 @@ const Catalogo = ({ navigation }) => {
     <ScrollView style={styles.contenedor} showsVerticalScrollIndicator={false}>
       {/* Barra de Búsqueda */}
       <View style={styles.buscador}>
-        <Ionicons name="search-outline" size={18} color="#007AFF" />
+        <Ionicons name="search-outline" size={18} color="#0B2E59" />
         <TextInput
           placeholder="Buscar herramientas, cemento, tornillos..."
           placeholderTextColor="#A0A0A0"
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   botonVerDetalle: {
-    backgroundColor: '#3F51B5', 
+    backgroundColor: '#0B2E59',
     borderRadius: 8, 
     paddingVertical: 10, 
     alignItems: 'center', 

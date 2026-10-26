@@ -2,6 +2,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"; 
 import { createNativeStackNavigator } from "@react-navigation/native-stack"; 
 import { Ionicons } from "@expo/vector-icons"; 
+import { AppAlertProvider } from './components/AppAlert';
 
 
 import Registro from "./screens/Registro"; 
@@ -25,20 +26,10 @@ function AdminStack() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1E88E5',
+        tabBarActiveTintColor: '#0B2E59',
         tabBarInactiveTintColor: '#888',
       }}
     >
-      <Tab.Screen
-        name="VistaAdmin"
-        component={VistaAdmin}
-        options={{
-          title: 'Productos',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cube-outline" size={size} color={color} />
-          ),
-        }}
-      />
       <Tab.Screen
         name="AdminPedidos"
         component={AdminPedidos}
@@ -46,6 +37,16 @@ function AdminStack() {
           title: 'Pedidos',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="clipboard-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="VistaAdmin"
+        component={VistaAdmin}
+        options={{
+          title: 'Productos',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" size={size} color={color} />
           ),
         }}
       />
@@ -74,10 +75,10 @@ function CatalogoStack() {
 // TABS PRINCIPALES (Catálogo, Carrito, Pedidos, Perfil)
 function HomeTabs() {
   return (
-    <Tab.Navigator 
-      screenOptions={{ 
+    <Tab.Navigator
+      screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1E88E5', 
+        tabBarActiveTintColor: '#0B2E59',
         tabBarInactiveTintColor: '#888',
       }}
     >
@@ -135,30 +136,30 @@ function HomeTabs() {
 // NAVEGACIÓN PRINCIPAL 
 export default function Navegacion() { 
   return ( 
-    <NavigationContainer> 
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-        
-        {/* Pantalla de Iniciar Sesión */}
-        <Stack.Screen name="Login" component={Login} />
+    <AppAlertProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+          {/* Pantalla de Iniciar Sesión */}
+          <Stack.Screen name="Login" component={Login} />
 
-        {/* Pantalla de Registro */}
-        <Stack.Screen name="Registro" component={Registro} options={{ headerShown: true, title: "Crear Cuenta" }} />
-        
-        {/* Pantalla Principal con Pestañas */}
-        <Stack.Screen name="HomeTabs" component={HomeTabs} />
+          {/* Pantalla de Registro */}
+          <Stack.Screen name="Registro" component={Registro} options={{ headerShown: true, title: "Crear Cuenta" }} />
 
-   {/* PANTALLAS DE ADMINISTRACIÓN */}
-        <Stack.Screen name="LoginAdmin" component={LoginAdmin} options={{ headerShown: false }} />
-        <Stack.Screen name="PanelAdmin" component={AdminStack} options={{ headerShown: false }} />
-        <Stack.Screen name="nuevoProducto" component={NuevoProductoScreen} options={{ headerShown: true, title: "Gestión de Producto" }} />
+          {/* Pantalla Principal con Pestañas */}
+          <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
-        <Stack.Screen 
-          name="FinalizarPedido" 
-          component={FinalizarPedido} 
-          options={{ headerShown: false }} 
-        />
+          {/* PANTALLAS DE ADMINISTRACIÓN */}
+          <Stack.Screen name="LoginAdmin" component={LoginAdmin} options={{ headerShown: false }} />
+          <Stack.Screen name="PanelAdmin" component={AdminStack} options={{ headerShown: false }} />
+          <Stack.Screen name="nuevoProducto" component={NuevoProductoScreen} options={{ headerShown: true, title: "Gestión de Producto" }} />
 
-      </Stack.Navigator> 
-    </NavigationContainer> 
+          <Stack.Screen
+            name="FinalizarPedido"
+            component={FinalizarPedido}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </AppAlertProvider>
   ); 
 }

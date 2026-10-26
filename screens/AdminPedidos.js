@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -13,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { collection, onSnapshot, orderBy, query, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { useAppAlert } from '../components/AppAlert';
 
 const ESTADOS_PEDIDO = ['Pendiente', 'En preparación', 'En camino', 'Entregado'];
 
@@ -41,6 +41,7 @@ const estiloEstado = (estado) => {
 };
 
 export default function AdminPedidos() {
+  const Alert = useAppAlert();
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(false);
@@ -125,7 +126,7 @@ export default function AdminPedidos() {
         ))}
 
         <View style={styles.direccionFila}>
-          <Ionicons name="location-outline" size={18} color="#1E88E5" />
+          <Ionicons name="location-outline" size={18} color="#0B2E59" />
           <Text style={styles.direccionTexto}>{obtenerDireccion(item.direccion)}</Text>
         </View>
 
@@ -144,11 +145,16 @@ export default function AdminPedidos() {
 
         {item.confirmacionCliente && (
           <View style={styles.mensajeCliente}>
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#895A00" />
-            <Text style={styles.mensajeClienteTexto}>
-              Mensaje del cliente: marcó el pedido como {item.confirmacionCliente.toLowerCase()}.
-              {item.mensajeAdmin ? ` ${item.mensajeAdmin}` : ''}
-            </Text>
+            <View style={styles.mensajeClienteIcono}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#0B2E59" />
+            </View>
+            <View style={styles.mensajeClienteContenido}>
+              <Text style={styles.mensajeClienteTitulo}>Confirmación del cliente</Text>
+              <Text style={styles.mensajeClienteTexto}>
+                Marcó el pedido como {item.confirmacionCliente.toLowerCase()}.
+                {item.mensajeAdmin ? ` ${item.mensajeAdmin}` : ''}
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -158,7 +164,7 @@ export default function AdminPedidos() {
   if (cargando) {
     return (
       <View style={styles.estadoPantalla}>
-        <ActivityIndicator size="large" color="#1E88E5" />
+        <ActivityIndicator size="large" color="#0B2E59" />
       </View>
     );
   }
@@ -215,13 +221,18 @@ export default function AdminPedidos() {
                 onPress={() => actualizarEstado(pedidoSeleccionado, estado)}
                 disabled={actualizando}
               >
-                <Text style={styles.opcionEstadoTexto}>{estado}</Text>
+                <Text style={[
+                  styles.opcionEstadoTexto,
+                  pedidoSeleccionado?.estado === estado && styles.opcionEstadoTextoActivo,
+                ]}>
+                  {estado}
+                </Text>
                 {pedidoSeleccionado?.estado === estado && (
-                  <Ionicons name="checkmark-circle" size={20} color="#1E88E5" />
+                  <Ionicons name="checkmark-circle" size={20} color="#FFF" />
                 )}
               </TouchableOpacity>
             ))}
-            {actualizando && <ActivityIndicator color="#1E88E5" style={styles.indicador} />}
+            {actualizando && <ActivityIndicator color="#0B2E59" style={styles.indicador} />}
             <TouchableOpacity
               style={styles.botonCancelar}
               onPress={() => setPedidoSeleccionado(null)}
@@ -275,7 +286,7 @@ const styles = StyleSheet.create({
   direccionTexto: { color: '#606B79', flex: 1, fontSize: 12, lineHeight: 18, marginLeft: 6 },
   resumenFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   resumenTexto: { color: '#6E7886', fontSize: 12 },
-  total: { color: '#1E88E5', fontSize: 16, fontWeight: 'bold' },
+  total: { color: '#0B2E59', fontSize: 16, fontWeight: 'bold' },
   botonEstado: {
     alignItems: 'center',
     backgroundColor: '#0B2E59',
@@ -287,14 +298,39 @@ const styles = StyleSheet.create({
   },
   botonEstadoTexto: { color: '#FFF', fontSize: 13, fontWeight: 'bold', marginLeft: 7 },
   mensajeCliente: {
-    alignItems: 'flex-start',
-    backgroundColor: '#FFF6E5',
-    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F1F6FC',
+    borderLeftColor: '#0B2E59',
+    borderLeftWidth: 4,
+    borderRadius: 12,
     flexDirection: 'row',
     marginTop: 10,
-    padding: 10,
+    padding: 12,
   },
-  mensajeClienteTexto: { color: '#71500D', flex: 1, fontSize: 12, lineHeight: 17, marginLeft: 7 },
+  mensajeClienteIcono: {
+    alignItems: 'center',
+    backgroundColor: '#E1EBF7',
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    marginRight: 10,
+    width: 36,
+  },
+  mensajeClienteContenido: {
+    flex: 1,
+  },
+  mensajeClienteTitulo: {
+    color: '#0B2E59',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  mensajeClienteTexto: {
+    color: '#52647A',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+  },
   estadoPantalla: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24 },
   estadoVacio: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingVertical: 50 },
   textoVacio: { color: '#576273', fontSize: 15, marginTop: 12, textAlign: 'center' },
@@ -304,14 +340,19 @@ const styles = StyleSheet.create({
   modalSubtitulo: { color: '#77808E', fontSize: 12, marginBottom: 14, marginTop: 4 },
   opcionEstado: {
     alignItems: 'center',
+    borderColor: '#0B2E59',
+    borderRadius: 8,
+    borderWidth: 1,
     borderBottomColor: '#EEF0F3',
-    borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 10,
     paddingVertical: 13,
   },
-  opcionEstadoActiva: { backgroundColor: '#F4F9FF' },
-  opcionEstadoTexto: { color: '#303A49', fontSize: 14 },
+  opcionEstadoActiva: { backgroundColor: '#0B2E59' },
+  opcionEstadoTexto: { color: '#0B2E59', fontSize: 14 },
+  opcionEstadoTextoActivo: { color: '#FFF' },
   indicador: { marginTop: 12 },
   botonCancelar: { alignItems: 'center', marginTop: 12, padding: 10 },
   textoCancelar: { color: '#666', fontSize: 14, fontWeight: '600' },

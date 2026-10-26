@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { db } from '../firebase/config'; 
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { useAppAlert } from '../components/AppAlert';
 
 export default function FormularioProductoScreen({ route, navigation }) {
+  const Alert = useAppAlert();
   const productoEditando = route.params?.producto;
 
   const [categoriaId, setCategoriaId] = useState('');
