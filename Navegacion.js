@@ -72,6 +72,42 @@ function CatalogoStack() {
   ); 
 }
 
+function CarritoStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Carrito"
+        component={Carrito}
+        options={{ title: 'Mi Carrito (0)' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function PedidosStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Pedidos"
+        component={Pedidos}
+        options={{ title: 'Mis Pedidos' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+function PerfilStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Perfil"
+        component={Perfil}
+        options={{ title: 'Mi perfil' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 // TABS PRINCIPALES (Catálogo, Carrito, Pedidos, Perfil)
 function HomeTabs() {
   return (
@@ -97,7 +133,7 @@ function HomeTabs() {
       {/*  TAB CARRITO */} 
       <Tab.Screen 
         name="CarritoTab" 
-        component={Carrito} 
+        component={CarritoStack}
         options={{ 
           title: 'Carrito', 
           tabBarIcon: ({ color, size }) => ( 
@@ -109,7 +145,7 @@ function HomeTabs() {
       {/* TAB PEDIDOS */} 
       <Tab.Screen 
         name="PedidosTab" 
-        component={Pedidos} 
+        component={PedidosStack}
         options={{ 
           title: 'Pedidos', 
           tabBarIcon: ({ color, size }) => ( 
@@ -121,7 +157,7 @@ function HomeTabs() {
       {/* TAB PERFIL */} 
       <Tab.Screen 
         name="PerfilTab" 
-        component={Perfil} 
+        component={PerfilStack}
         options={{ 
           title: 'Perfil', 
           tabBarIcon: ({ color, size }) => ( 

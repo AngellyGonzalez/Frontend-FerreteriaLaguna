@@ -187,7 +187,6 @@ const handleCerrarSesion = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.pageTitle}>Mi perfil</Text>
       <Text style={styles.pageSubtitle}>Administra tu cuenta y tus direcciones</Text>
 
       <View style={styles.profileCard}>
@@ -395,12 +394,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  pageTitle: {
-    color: '#172B45',
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: 0.2,
   },
   pageSubtitle: {
     color: '#738198',

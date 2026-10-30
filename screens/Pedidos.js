@@ -133,7 +133,6 @@ export default function Pedidos() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contenido}>
       <View style={styles.encabezado}>
         <View>
-          <Text style={styles.titulo}>Mis pedidos</Text>
           <Text style={styles.subtitulo}>Historial de tus compras</Text>
         </View>
         <View style={styles.contadorPedidos}>
@@ -278,11 +277,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
-  },
-  titulo: {
-    color: '#1B2638',
-    fontSize: 22,
-    fontWeight: 'bold',
   },
   subtitulo: {
     color: '#77808E',

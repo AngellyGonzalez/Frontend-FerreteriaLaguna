@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDocs, onSnapshot, runTransaction, writeBatch } from 'firebase/firestore';
@@ -201,7 +201,7 @@ export default function Carrito({ route, navigation }) {
     }
   };
 
-  const vaciarCarrito = () => {
+  const vaciarCarrito = useCallback(() => {
     Alert.alert('Vaciar carrito', '¿Quieres eliminar todos los productos del carrito?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -223,7 +223,25 @@ export default function Carrito({ route, navigation }) {
         },
       },
     ]);
-  };
+  }, [Alert, usuarioId]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: `Mi Carrito (${carrito.length})`,
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={vaciarCarrito}
+          disabled={carrito.length === 0}
+          accessibilityRole="button"
+          accessibilityLabel="Vaciar carrito"
+          accessibilityState={{ disabled: carrito.length === 0 }}
+          style={{ padding: 8 }}
+        >
+          <Ionicons name="trash-outline" size={22} color="#0B2E59" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, carrito.length, vaciarCarrito]);
 
   const alternarSeleccion = (id) => {
     setProductosNoSeleccionados((actuales) => {
@@ -256,18 +274,7 @@ export default function Carrito({ route, navigation }) {
   const totalNeto = subtotal + costoEnvio;
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Cabecera */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#0B2E59" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mi Carrito ({carrito.length})</Text>
-        <TouchableOpacity onPress={vaciarCarrito} disabled={carrito.length === 0}>
-          <Ionicons name="trash-outline" size={22} color="#0B2E59" />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.container}>
       {cargando ? (
         <View style={styles.vacioContainer}>
           <ActivityIndicator size="large" color="#0B2E59" />
@@ -383,7 +390,7 @@ export default function Carrito({ route, navigation }) {
           </View>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -391,21 +398,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
   },
   vacioContainer: {
     flex: 1,
