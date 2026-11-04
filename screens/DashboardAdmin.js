@@ -16,6 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import EncabezadoAdmin from '../components/EncabezadoAdmin';
 
 const COLORES = ['#0B2E59', '#217346', '#D97706', '#7C3AED', '#C2410C'];
 const MEDIDAS = [
@@ -317,16 +318,11 @@ export default function DashboardAdmin() {
           />
         )}
       >
-        <View style={styles.encabezado}>
-          <View>
-            <Text style={styles.eyebrow}>PANEL ADMINISTRATIVO</Text>
-            <Text style={styles.titulo}>Estadísticas</Text>
-            <Text style={styles.subtitulo}>Resumen de ventas y pedidos</Text>
-          </View>
-          <View style={styles.iconoEncabezado}>
-            <Ionicons name="analytics-outline" size={25} color="#FFFFFF" />
-          </View>
-        </View>
+        <EncabezadoAdmin
+          titulo="Estadísticas"
+          subtitulo="Resumen de ventas y pedidos"
+          icono="analytics-outline"
+        />
 
         {error && (
           <View style={styles.mensajeError}>
@@ -659,28 +655,30 @@ function Grafico({ filas, tipo, medida }) {
         <View style={styles.series}>
           {filas.map((fila, indice) => (
             <View style={styles.pontoSerie} key={fila.nombre}>
-              {tipo === 'line' && indice > 0 && (
+              <View style={styles.areaSerie}>
+                {tipo === 'line' && indice > 0 && (
+                  <View
+                    style={[
+                      styles.segmentoLinea,
+                      {
+                        backgroundColor: COLORES[indice % COLORES.length],
+                        transform: [{ rotate: `${Math.atan2(
+                          (filas[indice - 1].valor - fila.valor) / maximo * 110,
+                          42
+                        ) * 180 / Math.PI}deg` }],
+                      },
+                    ]}
+                  />
+                )}
                 <View
                   style={[
-                    styles.segmentoLinea,
-                    {
-                      backgroundColor: COLORES[indice % COLORES.length],
-                      transform: [{ rotate: `${Math.atan2(
-                        (filas[indice - 1].valor - fila.valor) / maximo * 110,
-                        42
-                      ) * 180 / Math.PI}deg` }],
-                    },
+                    tipo === 'bar' ? styles.barraColumna : styles.puntoLinha,
+                    tipo === 'bar'
+                      ? { height: `${Math.max((fila.valor / maximo) * 100, 3)}%`, backgroundColor: COLORES[indice % COLORES.length] }
+                      : { bottom: `${(fila.valor / maximo) * 100}%`, backgroundColor: COLORES[indice % COLORES.length] },
                   ]}
                 />
-              )}
-              <View
-                style={[
-                  tipo === 'bar' ? styles.barraColumna : styles.puntoLinha,
-                  tipo === 'bar'
-                    ? { height: `${Math.max((fila.valor / maximo) * 100, 3)}%`, backgroundColor: COLORES[indice % COLORES.length] }
-                    : { bottom: `${(fila.valor / maximo) * 100}%`, backgroundColor: COLORES[indice % COLORES.length] },
-                ]}
-              />
+              </View>
               <Text style={styles.etiquetaSerie} numberOfLines={1}>{fila.nombre}</Text>
               <Text style={styles.valorSerie}>{formatear(fila.valor)}</Text>
             </View>
@@ -727,23 +725,6 @@ const styles = StyleSheet.create({
   contenido: { padding: 18, paddingBottom: 32 },
   cargando: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   textoCargando: { color: '#64748B', fontSize: 14 },
-  encabezado: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  eyebrow: { color: '#217346', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-  titulo: { color: '#0B2E59', fontSize: 30, fontWeight: '800', marginTop: 4 },
-  subtitulo: { color: '#64748B', fontSize: 14, marginTop: 3 },
-  iconoEncabezado: {
-    alignItems: 'center',
-    backgroundColor: '#0B2E59',
-    borderRadius: 18,
-    height: 54,
-    justifyContent: 'center',
-    width: 54,
-  },
   mensajeError: {
     alignItems: 'center',
     backgroundColor: '#FEE2E2',
@@ -812,7 +793,8 @@ const styles = StyleSheet.create({
   etiquetaEje: { color: '#94A3B8', fontSize: 9, left: -45, position: 'absolute', width: 40 },
   lineaEjeVisible: { borderTopColor: '#E2E8F0', borderTopWidth: 1, flex: 1 },
   series: { alignItems: 'flex-end', bottom: 36, flexDirection: 'row', left: 48, position: 'absolute', right: 0, top: 8 },
-  pontoSerie: { alignItems: 'center', flex: 1, height: '100%', justifyContent: 'flex-end', position: 'relative' },
+  pontoSerie: { alignItems: 'center', flex: 1, height: '100%', position: 'relative' },
+  areaSerie: { alignItems: 'center', flex: 1, justifyContent: 'flex-end', position: 'relative', width: '100%' },
   barraColumna: { borderTopLeftRadius: 6, borderTopRightRadius: 6, minHeight: 5, width: '52%' },
   pontoLinha: { borderRadius: 6, height: 12, position: 'absolute', width: 12 },
   segmentoLinea: { height: 3, position: 'absolute', transformOrigin: 'left center', width: 44 },

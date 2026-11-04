@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { db } from '../firebase/config';
 import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { useAppAlert } from '../components/AppAlert';
+import EncabezadoAdmin from '../components/EncabezadoAdmin';
 
 export default function VistaAdmin({ navigation }) {
   const Alert = useAppAlert();
@@ -48,6 +49,11 @@ export default function VistaAdmin({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
+        <EncabezadoAdmin
+          titulo="Productos"
+          subtitulo="Administra el inventario de la tienda"
+          icono="cube-outline"
+        />
         {/* Botón para Agregar Producto */}
         <TouchableOpacity
           style={styles.botonAgregar}
@@ -117,7 +123,7 @@ const styles = StyleSheet.create({
   },
   container: { 
     flex: 1,
-    padding: 16,
+    padding: 18,
     backgroundColor: '#EAF2FB',
   },
   botonAgregar: { 

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, doc, getDoc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
+import EncabezadoAdmin from '../components/EncabezadoAdmin';
 
 const ESTADOS_PEDIDO = ['Pendiente', 'En preparación', 'En camino', 'Entregado'];
 
@@ -213,8 +214,15 @@ export default function AdminPedidos() {
   if (cargando) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.estadoPantalla}>
-          <ActivityIndicator size="large" color="#0B2E59" />
+        <View style={styles.estadoContenido}>
+          <EncabezadoAdmin
+            titulo="Pedidos"
+            subtitulo="Gestiona los pedidos de tus clientes"
+            icono="receipt-outline"
+          />
+          <View style={styles.estadoPantalla}>
+            <ActivityIndicator size="large" color="#0B2E59" />
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -223,9 +231,16 @@ export default function AdminPedidos() {
   if (error) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.estadoPantalla}>
-          <Ionicons name="alert-circle-outline" size={54} color="#D32F2F" />
-          <Text style={styles.textoVacio}>No se pudieron cargar los pedidos.</Text>
+        <View style={styles.estadoContenido}>
+          <EncabezadoAdmin
+            titulo="Pedidos"
+            subtitulo="Gestiona los pedidos de tus clientes"
+            icono="receipt-outline"
+          />
+          <View style={styles.estadoPantalla}>
+            <Ionicons name="alert-circle-outline" size={54} color="#D32F2F" />
+            <Text style={styles.textoVacio}>No se pudieron cargar los pedidos.</Text>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -239,10 +254,11 @@ export default function AdminPedidos() {
         renderItem={renderPedido}
         contentContainerStyle={pedidos.length ? styles.lista : styles.listaVacia}
         ListHeaderComponent={
-          <View style={styles.encabezado}>
-            <Text style={styles.titulo}>Pedidos de clientes</Text>
-            <Text style={styles.subtitulo}>Total de pedidos: {pedidos.length}</Text>
-          </View>
+          <EncabezadoAdmin
+            titulo="Pedidos"
+            subtitulo={`Gestiona los pedidos de tus clientes · Total: ${pedidos.length}`}
+            icono="receipt-outline"
+          />
         }
         ListEmptyComponent={
           <View style={styles.estadoVacio}>
@@ -302,11 +318,9 @@ export default function AdminPedidos() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: '#F4F6F9', flex: 1 },
+  estadoContenido: { flex: 1, padding: 16 },
   lista: { padding: 16, paddingBottom: 28 },
   listaVacia: { flexGrow: 1, padding: 16 },
-  encabezado: { marginBottom: 16 },
-  titulo: { color: '#1B2638', fontSize: 22, fontWeight: 'bold' },
-  subtitulo: { color: '#77808E', fontSize: 13, marginTop: 4 },
   tarjeta: {
     backgroundColor: '#FFF',
     borderColor: '#E2E7EE',

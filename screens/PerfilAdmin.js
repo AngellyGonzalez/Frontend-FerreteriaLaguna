@@ -19,16 +19,69 @@ import EncabezadoPerfil from '../components/EncabezadoPerfil';
 import { auth, authAdminCreation, db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
 
-const URL_REPORTE_EXCEL = 'https://backend-lagutex-movil.onrender.com/estadisticas/exportar/excel';
-const MIME_EXCEL = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const REPORTES = {
+  excel: {
+    url: 'https://backend-lagutex-movil.onrender.com/estadisticas/exportar/excel',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    extension: 'xlsx',
+    nombre: 'Excel',
+    longitudMinima: 4,
+    firma: [0x50, 0x4B],
+  },
+  pdf: {
+    url: 'https://backend-lagutex-movil.onrender.com/estadisticas/exportar/pdf',
+    mimeType: 'application/pdf',
+    extension: 'pdf',
+    nombre: 'PDF',
+    longitudMinima: 5,
+    firma: [0x25, 0x50, 0x44, 0x46, 0x2D],
+  },
+};
+const URL_API_USUARIOS = 'https://backend-lagutex-movil.onrender.com/usuario';
+
+const solicitarApiUsuarios = async (ruta = '', opciones = {}) => {
+  const usuarioActual = auth.currentUser;
+  if (!usuarioActual) {
+    throw new Error('No hay una sesión administrativa activa.');
+  }
+
+  const token = await usuarioActual.getIdToken();
+  const response = await fetch(`${URL_API_USUARIOS}${ruta}`, {
+    ...opciones,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(opciones.body ? { 'Content-Type': 'application/json' } : {}),
+      ...opciones.headers,
+    },
+  });
+
+  let respuesta;
+  try {
+    respuesta = await response.json();
+  } catch {
+    throw new Error('El servidor devolvió una respuesta inválida.');
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      respuesta?.mensaje || `El servidor respondió con el estado ${response.status}.`
+    );
+  }
+
+  return respuesta;
+};
 
 export default function PerfilAdmin({ navigation }) {
   const Alert = useAppAlert();
   const [usuarioData, setUsuarioData] = useState(null);
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
-  const [creandoReporte, setCreandoReporte] = useState(false);
+  const [formatoCreandoReporte, setFormatoCreandoReporte] = useState(null);
   const [mostrarFormularioAdmin, setMostrarFormularioAdmin] = useState(false);
   const [creandoAdmin, setCreandoAdmin] = useState(false);
+  const [administradores, setAdministradores] = useState([]);
+  const [cargandoAdministradores, setCargandoAdministradores] = useState(true);
+  const [adminEditando, setAdminEditando] = useState(null);
+  const [eliminandoAdminId, setEliminandoAdminId] = useState(null);
   const [nombresAdmin, setNombresAdmin] = useState('');
   const [apellidosAdmin, setApellidosAdmin] = useState('');
   const [cedulaAdmin, setCedulaAdmin] = useState('');
@@ -36,6 +89,29 @@ export default function PerfilAdmin({ navigation }) {
   const [correoAdmin, setCorreoAdmin] = useState('');
   const [passwordAdmin, setPasswordAdmin] = useState('');
   const [verPasswordAdmin, setVerPasswordAdmin] = useState(false);
+
+  const cargarAdministradores = async () => {
+    setCargandoAdministradores(true);
+    try {
+      const usuarios = await solicitarApiUsuarios();
+      if (!Array.isArray(usuarios)) {
+        throw new Error('El servidor no devolvió una lista válida de usuarios.');
+      }
+
+      setAdministradores(usuarios.filter((usuario) => (
+        String(usuario.rol || '').toLowerCase() === 'admin'
+        || usuario.isAdmin === true
+      )));
+    } catch (error) {
+      console.error('Error al cargar administradores:', error);
+      Alert.alert(
+        'Error al cargar administradores',
+        error instanceof Error ? error.message : 'No se pudo cargar la lista de administradores.'
+      );
+    } finally {
+      setCargandoAdministradores(false);
+    }
+  };
 
   useEffect(() => {
     const cargarPerfil = async () => {
@@ -62,6 +138,7 @@ export default function PerfilAdmin({ navigation }) {
     };
 
     cargarPerfil();
+    cargarAdministradores();
   }, []);
 
   const cerrarSesion = () => {
@@ -87,32 +164,32 @@ export default function PerfilAdmin({ navigation }) {
     ]);
   };
 
-  const crearReporte = async () => {
-    setCreandoReporte(true);
+  const crearReporte = async (formato) => {
+    const reporte = REPORTES[formato];
+    setFormatoCreandoReporte(formato);
     try {
-      const response = await fetch(URL_REPORTE_EXCEL);
+      const response = await fetch(reporte.url);
       if (!response.ok) {
         throw new Error(`El servidor respondió con el estado ${response.status}.`);
       }
 
       const contentType = response.headers.get('content-type')?.split(';')[0].trim();
-      if (contentType !== MIME_EXCEL) {
-        throw new Error('El servidor no devolvió un archivo Excel válido.');
+      if (contentType !== reporte.mimeType) {
+        throw new Error(`El servidor no devolvió un archivo ${reporte.nombre} válido.`);
       }
 
       const contenido = await response.bytes();
       if (
-        contenido.length < 4
-        || contenido[0] !== 0x50
-        || contenido[1] !== 0x4B
+        contenido.length < reporte.longitudMinima
+        || !reporte.firma.every((byte, index) => contenido[index] === byte)
       ) {
-        throw new Error('El archivo recibido no parece ser un Excel válido.');
+        throw new Error(`El archivo recibido no parece ser un ${reporte.nombre} válido.`);
       }
 
       const nombreArchivo = response.headers
         .get('content-disposition')
         ?.match(/filename="?([^";]+)"?/i)?.[1]
-        || `estadisticas-tienda-${new Date().toISOString().slice(0, 10)}.xlsx`;
+        || `estadisticas-tienda-${new Date().toISOString().slice(0, 10)}.${reporte.extension}`;
       const nombreSeguro = nombreArchivo.replace(/[\\/:*?"<>|]/g, '_');
       const archivo = new File(Paths.cache, nombreSeguro);
       await archivo.write(contenido);
@@ -122,21 +199,23 @@ export default function PerfilAdmin({ navigation }) {
       }
 
       await Sharing.shareAsync(archivo.uri, {
-        mimeType: MIME_EXCEL,
-        dialogTitle: 'Guardar reporte Excel',
+        mimeType: reporte.mimeType,
+        dialogTitle: `Guardar reporte ${reporte.nombre}`,
       });
     } catch (error) {
-      console.error('Error al crear el reporte Excel:', error);
+      console.error(`Error al crear el reporte ${reporte.nombre}:`, error);
       Alert.alert(
         'Error al crear el reporte',
-        error instanceof Error ? error.message : 'No se pudo descargar el archivo Excel.'
+        error instanceof Error
+          ? error.message
+          : `No se pudo descargar el archivo ${reporte.nombre}.`
       );
     } finally {
-      setCreandoReporte(false);
+      setFormatoCreandoReporte(null);
     }
   };
 
-  const agregarAdministrador = async () => {
+  const guardarAdministrador = async () => {
     if (creandoAdmin) return;
 
     const nombres = nombresAdmin.trim();
@@ -145,17 +224,82 @@ export default function PerfilAdmin({ navigation }) {
     const telefono = telefonoAdmin.trim();
     const correo = correoAdmin.trim();
 
-    if (!nombres || !apellidos || !cedula || !telefono || !correo || !passwordAdmin) {
-      Alert.alert('Campos requeridos', 'Completa todos los datos para registrar al administrador.');
+    if (
+      !nombres
+      || !apellidos
+      || !cedula
+      || !telefono
+      || !correo
+      || (!adminEditando && !passwordAdmin)
+    ) {
+      Alert.alert('Campos requeridos', 'Completa todos los datos del administrador.');
       return;
     }
 
-    if (passwordAdmin.length < 6) {
+    if (adminEditando && passwordAdmin && passwordAdmin.length < 8) {
+      Alert.alert('Contraseña inválida', 'La nueva contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+
+    if (!adminEditando && passwordAdmin.length < 6) {
       Alert.alert('Contraseña inválida', 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     setCreandoAdmin(true);
+    if (adminEditando) {
+      try {
+        const respuesta = await solicitarApiUsuarios(`/${encodeURIComponent(adminEditando.id)}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            nombres,
+            apellidos,
+            cedula,
+            telefono,
+            correo: correo.toLowerCase(),
+            ...(passwordAdmin ? { contrasena: passwordAdmin } : {}),
+          }),
+        });
+
+        const administradorActualizado = respuesta.usuario || {
+          ...adminEditando,
+          nombres,
+          apellidos,
+          cedula,
+          telefono,
+          correo: correo.toLowerCase(),
+        };
+        setAdministradores((lista) => lista.map((admin) => (
+          admin.id === adminEditando.id ? administradorActualizado : admin
+        )));
+        setUsuarioData((datos) => (
+          auth.currentUser?.uid === adminEditando.id
+            ? { ...datos, nombres, apellidos, correo: correo.toLowerCase(), cedula, telefono }
+            : datos
+        ));
+        setAdminEditando(null);
+        setMostrarFormularioAdmin(false);
+        setPasswordAdmin('');
+        Alert.alert(
+          respuesta.authSincronizado === false
+            ? 'Perfil actualizado'
+            : 'Administrador actualizado',
+          respuesta.authSincronizado === false
+            ? 'El perfil se actualizó, pero el backend no encontró una cuenta asociada en Firebase Auth.'
+            : 'Los datos del administrador se actualizaron correctamente.'
+        );
+      } catch (error) {
+        console.error('Error al actualizar administrador:', error);
+        Alert.alert(
+          'No se pudo actualizar el administrador',
+          error instanceof Error ? error.message : 'Ocurrió un error al guardar los cambios.'
+        );
+      } finally {
+        setCreandoAdmin(false);
+      }
+      return;
+    }
+
     let usuarioCreado = null;
     try {
       const credencial = await createUserWithEmailAndPassword(
@@ -175,6 +319,16 @@ export default function PerfilAdmin({ navigation }) {
         isAdmin: true,
       });
 
+      setAdministradores((lista) => [...lista, {
+        id: usuarioCreado.uid,
+        nombres,
+        apellidos,
+        cedula,
+        telefono,
+        correo,
+        rol: 'admin',
+        isAdmin: true,
+      }]);
       Alert.alert('Administrador agregado', `${nombres} ${apellidos} ya puede iniciar sesión como administrador.`);
       setNombresAdmin('');
       setApellidosAdmin('');
@@ -224,6 +378,79 @@ export default function PerfilAdmin({ navigation }) {
     }
   };
 
+  const editarAdministrador = (administrador) => {
+    setAdminEditando(administrador);
+    setNombresAdmin(administrador.nombres || '');
+    setApellidosAdmin(administrador.apellidos || '');
+    setCedulaAdmin(administrador.cedula || '');
+    setTelefonoAdmin(administrador.telefono || '');
+    setCorreoAdmin(administrador.correo || '');
+    setPasswordAdmin('');
+    setMostrarFormularioAdmin(true);
+  };
+
+  const cancelarEdicionAdministrador = () => {
+    setAdminEditando(null);
+    setMostrarFormularioAdmin(false);
+    setNombresAdmin('');
+    setApellidosAdmin('');
+    setCedulaAdmin('');
+    setTelefonoAdmin('');
+    setCorreoAdmin('');
+    setPasswordAdmin('');
+    setVerPasswordAdmin(false);
+  };
+
+  const confirmarEliminarAdministrador = (administrador) => {
+    if (administrador.id === auth.currentUser?.uid) {
+      Alert.alert('Acción no permitida', 'No puedes eliminar la cuenta con la que tienes la sesión activa.');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar administrador',
+      `¿Deseas eliminar a ${administrador.nombres || ''} ${administrador.apellidos || ''}? También se eliminará su cuenta de acceso.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setEliminandoAdminId(administrador.id);
+            try {
+              const respuesta = await solicitarApiUsuarios(
+                `/${encodeURIComponent(administrador.id)}`,
+                { method: 'DELETE' }
+              );
+              setAdministradores((lista) => lista.filter(
+                (admin) => admin.id !== administrador.id
+              ));
+              if (adminEditando?.id === administrador.id) {
+                cancelarEdicionAdministrador();
+              }
+              Alert.alert(
+                respuesta.authSincronizado === false
+                  ? 'Perfil eliminado'
+                  : 'Administrador eliminado',
+                respuesta.authSincronizado === false
+                  ? 'Se eliminó el perfil, pero el backend no encontró una cuenta asociada en Firebase Auth.'
+                  : 'El perfil y la cuenta de acceso se eliminaron correctamente.'
+              );
+            } catch (error) {
+              console.error('Error al eliminar administrador:', error);
+              Alert.alert(
+                'No se pudo eliminar el administrador',
+                error instanceof Error ? error.message : 'Ocurrió un error al eliminar la cuenta.'
+              );
+            } finally {
+              setEliminandoAdminId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const nombre = [
     usuarioData?.nombres || usuarioData?.nombre,
     usuarioData?.apellidos,
@@ -256,19 +483,58 @@ export default function PerfilAdmin({ navigation }) {
             <Ionicons name="bar-chart-outline" size={24} color="#217346" />
           </View>
           <View style={styles.infoReporte}>
-            <Text style={styles.tituloReporte}>Reporte de estadísticas</Text>
+            <Text style={styles.tituloReporte}>Reporte en Excel</Text>
             <Text style={styles.descripcionReporte}>
               Descarga los datos de la tienda en formato Excel.
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.botonReporte, creandoReporte && styles.botonDeshabilitado]}
-            onPress={crearReporte}
-            disabled={creandoReporte}
+            style={[
+              styles.botonReporte,
+              formatoCreandoReporte && styles.botonDeshabilitado,
+            ]}
+            onPress={() => crearReporte('excel')}
+            disabled={Boolean(formatoCreandoReporte)}
             accessibilityRole="button"
-            accessibilityState={{ disabled: creandoReporte, busy: creandoReporte }}
+            accessibilityLabel="Exportar reporte en Excel"
+            accessibilityState={{
+              disabled: Boolean(formatoCreandoReporte),
+              busy: formatoCreandoReporte === 'excel',
+            }}
           >
-            {creandoReporte ? (
+            {formatoCreandoReporte === 'excel' ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Ionicons name="download-outline" size={21} color="#FFFFFF" />
+            )}
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.seccionReporte, styles.seccionReportePDF]}>
+          <View style={[styles.iconoReporte, styles.iconoReportePDF]}>
+            <Ionicons name="document-text-outline" size={24} color="#C2410C" />
+          </View>
+          <View style={styles.infoReporte}>
+            <Text style={styles.tituloReporte}>Reporte en PDF</Text>
+            <Text style={styles.descripcionReporte}>
+              Descarga los datos de la tienda en formato PDF.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.botonReporte,
+              styles.botonReportePDF,
+              formatoCreandoReporte && styles.botonDeshabilitado,
+            ]}
+            onPress={() => crearReporte('pdf')}
+            disabled={Boolean(formatoCreandoReporte)}
+            accessibilityRole="button"
+            accessibilityLabel="Exportar reporte en PDF"
+            accessibilityState={{
+              disabled: Boolean(formatoCreandoReporte),
+              busy: formatoCreandoReporte === 'pdf',
+            }}
+          >
+            {formatoCreandoReporte === 'pdf' ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Ionicons name="download-outline" size={21} color="#FFFFFF" />
@@ -276,7 +542,9 @@ export default function PerfilAdmin({ navigation }) {
           </TouchableOpacity>
         </View>
         <Text style={styles.ayudaReporte}>
-          {creandoReporte ? 'Creando reporte...' : 'Toca el botón para crear el reporte.'}
+          {formatoCreandoReporte
+            ? `Creando reporte ${REPORTES[formatoCreandoReporte].nombre}...`
+            : 'Toca el botón del formato que deseas exportar.'}
         </Text>
 
         <View style={[styles.seccionReporte, styles.seccionAdministrador]}>
@@ -291,7 +559,14 @@ export default function PerfilAdmin({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.botonAdministrador}
-            onPress={() => setMostrarFormularioAdmin((visible) => !visible)}
+            onPress={() => {
+              if (mostrarFormularioAdmin) {
+                cancelarEdicionAdministrador();
+              } else {
+                setAdminEditando(null);
+                setMostrarFormularioAdmin(true);
+              }
+            }}
             accessibilityRole="button"
             accessibilityLabel={mostrarFormularioAdmin ? 'Cerrar formulario' : 'Agregar administrador'}
           >
@@ -303,9 +578,98 @@ export default function PerfilAdmin({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.listaAdministradores}>
+          <View style={styles.encabezadoAdministradores}>
+            <Text style={[styles.tituloFormulario, styles.tituloListaAdministradores]}>
+              Administradores registrados
+            </Text>
+            <TouchableOpacity
+              style={styles.botonRecargar}
+              onPress={cargarAdministradores}
+              disabled={cargandoAdministradores}
+              accessibilityRole="button"
+              accessibilityLabel="Actualizar lista de administradores"
+              accessibilityState={{ disabled: cargandoAdministradores, busy: cargandoAdministradores }}
+            >
+              {cargandoAdministradores ? (
+                <ActivityIndicator size="small" color="#0B2E59" />
+              ) : (
+                <Ionicons name="refresh-outline" size={20} color="#0B2E59" />
+              )}
+            </TouchableOpacity>
+          </View>
+          {cargandoAdministradores ? (
+            <ActivityIndicator color="#0B2E59" />
+          ) : administradores.length === 0 ? (
+            <Text style={styles.textoSinAdministradores}>
+              No hay administradores registrados.
+            </Text>
+          ) : (
+            administradores.map((administrador) => {
+              const esCuentaActual = administrador.id === auth.currentUser?.uid;
+              const eliminando = eliminandoAdminId === administrador.id;
+              return (
+                <View style={styles.filaAdministrador} key={administrador.id}>
+                  <View style={styles.datosAdministrador}>
+                    <Text style={styles.nombreAdministrador}>
+                      {[administrador.nombres, administrador.apellidos].filter(Boolean).join(' ')
+                        || 'Administrador'}
+                    </Text>
+                    <Text style={styles.correoAdministrador}>
+                      {administrador.correo || 'Sin correo registrado'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.botonEditarAdministrador}
+                    onPress={() => editarAdministrador(administrador)}
+                    disabled={Boolean(eliminandoAdminId) || creandoAdmin}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Editar administrador ${administrador.nombres || ''}`}
+                  >
+                    <Ionicons name="create-outline" size={19} color="#0B2E59" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.botonEliminarAdministrador,
+                      (esCuentaActual || Boolean(eliminandoAdminId)) && styles.botonDeshabilitado,
+                    ]}
+                    onPress={() => confirmarEliminarAdministrador(administrador)}
+                    disabled={esCuentaActual || Boolean(eliminandoAdminId) || creandoAdmin}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Eliminar administrador ${administrador.nombres || ''}`}
+                    accessibilityState={{ disabled: esCuentaActual || Boolean(eliminandoAdminId) || creandoAdmin, busy: eliminando }}
+                  >
+                    {eliminando ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </View>
+
         {mostrarFormularioAdmin && (
           <View style={styles.formularioAdmin}>
-            <Text style={styles.tituloFormulario}>Nuevo administrador</Text>
+            <View style={styles.encabezadoFormularioAdmin}>
+              <Text style={[styles.tituloFormulario, styles.tituloFormularioAdmin]}>
+                {adminEditando ? 'Editar administrador' : 'Nuevo administrador'}
+              </Text>
+              {adminEditando && (
+                <TouchableOpacity
+                  style={styles.botonCerrarEdicion}
+                  onPress={cancelarEdicionAdministrador}
+                  disabled={creandoAdmin}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar edición sin guardar"
+                  accessibilityState={{ disabled: creandoAdmin }}
+                >
+                  <Ionicons name="arrow-back" size={21} color="#0B2E59" />
+                </TouchableOpacity>
+              )}
+            </View>
             <TextInput
               style={styles.inputAdmin}
               placeholder="Nombres"
@@ -356,7 +720,9 @@ export default function PerfilAdmin({ navigation }) {
             <View style={styles.passwordAdmin}>
               <TextInput
                 style={styles.passwordInputAdmin}
-                placeholder="Contraseña (mínimo 6 caracteres)"
+                placeholder={adminEditando
+                  ? 'Nueva contraseña (opcional, mínimo 8 caracteres)'
+                  : 'Contraseña (mínimo 6 caracteres)'}
                 placeholderTextColor="#7A8A9D"
                 value={passwordAdmin}
                 onChangeText={setPasswordAdmin}
@@ -378,7 +744,7 @@ export default function PerfilAdmin({ navigation }) {
             </View>
             <TouchableOpacity
               style={[styles.botonCrearAdmin, creandoAdmin && styles.botonDeshabilitado]}
-              onPress={agregarAdministrador}
+              onPress={guardarAdministrador}
               disabled={creandoAdmin}
               accessibilityRole="button"
               accessibilityState={{ disabled: creandoAdmin, busy: creandoAdmin }}
@@ -387,8 +753,14 @@ export default function PerfilAdmin({ navigation }) {
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="person-add-outline" size={19} color="#FFFFFF" />
-                  <Text style={styles.textoCrearAdmin}>Crear administrador</Text>
+                  <Ionicons
+                    name={adminEditando ? 'save-outline' : 'person-add-outline'}
+                    size={19}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.textoCrearAdmin}>
+                    {adminEditando ? 'Guardar cambios' : 'Crear administrador'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -422,6 +794,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
   },
+  seccionReportePDF: {
+    marginTop: 12,
+  },
   iconoReporte: {
     alignItems: 'center',
     backgroundColor: '#E9F5ED',
@@ -430,6 +805,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
     width: 48,
+  },
+  iconoReportePDF: {
+    backgroundColor: '#FFF1E8',
   },
   infoReporte: {
     flex: 1,
@@ -453,6 +831,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 8,
     width: 48,
+  },
+  botonReportePDF: {
+    backgroundColor: '#C2410C',
   },
   botonDeshabilitado: {
     opacity: 0.7,
@@ -491,6 +872,91 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 12,
     padding: 16,
+  },
+  encabezadoFormularioAdmin: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  tituloFormularioAdmin: {
+    flex: 1,
+  },
+  botonCerrarEdicion: {
+    alignItems: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 10,
+    height: 36,
+    justifyContent: 'center',
+    marginBottom: 14,
+    width: 36,
+  },
+  listaAdministradores: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE6F1',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 12,
+    padding: 16,
+  },
+  encabezadoAdministradores: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  tituloListaAdministradores: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  botonRecargar: {
+    alignItems: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 10,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  textoSinAdministradores: {
+    color: '#6B7F95',
+    fontSize: 13,
+    paddingVertical: 8,
+  },
+  filaAdministrador: {
+    alignItems: 'center',
+    borderTopColor: '#E8EEF5',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  datosAdministrador: {
+    flex: 1,
+  },
+  nombreAdministrador: {
+    color: '#0B2E59',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  correoAdministrador: {
+    color: '#6B7F95',
+    fontSize: 12,
+    marginTop: 3,
+  },
+  botonEditarAdministrador: {
+    alignItems: 'center',
+    backgroundColor: '#EAF2FB',
+    borderRadius: 10,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  botonEliminarAdministrador: {
+    alignItems: 'center',
+    backgroundColor: '#C2410C',
+    borderRadius: 10,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
   },
   tituloFormulario: {
     color: '#0B2E59',
