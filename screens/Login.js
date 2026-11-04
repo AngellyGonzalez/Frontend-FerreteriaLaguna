@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { ActivityIndicator, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
 
 const Login = ({ navigation }) => {
@@ -10,24 +11,51 @@ const Login = ({ navigation }) => {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [verPassword, setVerPassword] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (loading) return;
     if (!correo || !password) {
       Alert.alert('Error', 'Por favor ingresa tu correo y contraseña.');
       return;
     }
 
+    setLoading(true);
+    let uidAutenticado = null;
     try {
-      await signInWithEmailAndPassword(auth, correo.trim(), password);
-      Alert.alert('¡Bienvenido!', 'Has iniciado sesión correctamente.');
-      navigation.replace('HomeTabs');
+      const credencial = await signInWithEmailAndPassword(auth, correo.trim(), password);
+      uidAutenticado = credencial.user.uid;
+      const perfilSnapshot = await getDoc(doc(db, 'usuario', uidAutenticado));
+
+      if (!perfilSnapshot.exists()) {
+        await signOut(auth);
+        uidAutenticado = null;
+        Alert.alert('Acceso denegado', 'No se encontró el perfil asociado a esta cuenta.');
+        return;
+      }
+
+      const perfil = perfilSnapshot.data();
+      const esAdmin = perfil.rol === 'admin' || perfil.isAdmin === true;
+      navigation.replace(esAdmin ? 'PanelAdmin' : 'HomeTabs');
     } catch (error) {
-      console.error(error);
+      console.error('Error al iniciar sesión:', error);
+      if (uidAutenticado && auth.currentUser?.uid === uidAutenticado) {
+        try {
+          await signOut(auth);
+        } catch (errorCerrarSesion) {
+          console.error('No se pudo cerrar la sesión después de fallar la verificación:', errorCerrarSesion);
+          Alert.alert('Error', 'No se pudo verificar el perfil ni cerrar la sesión.');
+          return;
+        }
+      }
       Alert.alert(
         'Acceso denegado', 
-        'El correo o la contraseña son incorrectos, o la cuenta no existe.'
+        error.code === 'auth/invalid-credential'
+          ? 'El correo o la contraseña son incorrectos.'
+          : 'No se pudo iniciar sesión. Verifica tus datos e inténtalo de nuevo.'
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,8 +138,18 @@ const Login = ({ navigation }) => {
           </View>
 
           {/* Botón Iniciar Sesión */}
-          <TouchableOpacity style={styles.botonLogin} onPress={handleLogin}>
-            <Text style={styles.textoBotonLogin}>Iniciar Sesión</Text>
+          <TouchableOpacity
+            style={[styles.botonLogin, loading && styles.botonLoginDeshabilitado]}
+            onPress={handleLogin}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading, busy: loading }}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.textoBotonLogin}>Iniciar Sesión</Text>
+            )}
           </TouchableOpacity>
 
           {/* Enlace a Registro */}
@@ -121,21 +159,6 @@ const Login = ({ navigation }) => {
               <Text style={styles.textoRegistro}>Regístrate</Text>
             </TouchableOpacity>
           </View>
-
-          {/*  TARJETA DE ACCESO DE ADMINISTRADOR */}
-          <TouchableOpacity 
-            style={styles.adminCard} 
-            onPress={() => navigation.navigate('LoginAdmin')}
-          >
-            <View style={styles.adminRow}>
-              <Ionicons name="shield-checkmark-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.adminTitle}>Acceso de administrador</Text>
-                <Text style={styles.adminSub}>Solo para personal autorizado.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#FFF" />
-            </View>
-          </TouchableOpacity>
 
         </View>
       </ScrollView>
@@ -260,6 +283,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  botonLoginDeshabilitado: {
+    opacity: 0.7,
+  },
   registroContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -273,29 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     color: '#0B2E59',
-  },
- 
-  adminCard: {
-    backgroundColor: '#0B2E59',
-    borderColor: '#0B2E59',
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 20,
-    padding: 12,
-  },
-  adminRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  adminTitle: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  adminSub: {
-    color: '#D7E4F2',
-    fontSize: 11,
-    marginTop: 2,
   },
 });
 

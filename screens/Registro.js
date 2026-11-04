@@ -75,14 +75,6 @@ export default function Registro({ navigation }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Cabecera */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation && navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Registro de Cliente</Text>
-      </View>
-
       {/* Banner informativo */}
       <View style={styles.banner}>
         <Ionicons name="pricetag-outline" size={20} color="#0066CC" style={{ marginRight: 8 }} />
@@ -176,13 +168,16 @@ export default function Registro({ navigation }) {
         style={styles.botonRegistrar}
         onPress={handleRegistrar}
         disabled={cargando}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: cargando, busy: cargando }}
       >
         {cargando ? (
           <ActivityIndicator color="#FFF" />
         ) : (
           <>
             <Ionicons name="person-add-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={styles.textoBoton}>Registrar Cliente</Text>
+            <Text style={styles.textoBoton}>Registrarse</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFF" />
           </>
         )}
       </TouchableOpacity>
@@ -195,18 +190,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#F8F9FA',
     padding: 20,
-    paddingTop: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 15,
-    color: '#111',
+    paddingTop: 24,
   },
   banner: {
     backgroundColor: '#E3F2FD',
@@ -258,17 +242,23 @@ const styles = StyleSheet.create({
   botonRegistrar: {
     backgroundColor: '#0B2E59',
     flexDirection: 'row',
-    height: 50,
-    borderRadius: 8,
+    height: 56,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 30,
-    elevation: 2,
+    shadowColor: '#0B2E59',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   textoBoton: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    marginRight: 10,
   },
 });

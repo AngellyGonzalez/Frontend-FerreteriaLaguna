@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {View,Text,StyleSheet,ScrollView,TouchableOpacity,TextInput, Modal,ActivityIndicator} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { deleteField, doc, getDoc, updateDoc } from 'firebase/firestore';
+import EncabezadoPerfil from '../components/EncabezadoPerfil';
 import { useAppAlert } from '../components/AppAlert';
 
 export default function Perfil({ navigation }) {
@@ -142,7 +145,7 @@ export default function Perfil({ navigation }) {
     );
   };
 
-const handleCerrarSesion = () => {
+  const handleCerrarSesion = () => {
     Alert.alert(
       'Cerrar sesión',
       '¿Estás seguro de que deseas cerrar sesión?',
@@ -154,10 +157,18 @@ const handleCerrarSesion = () => {
         {
           text: 'Sí, salir',
           style: 'destructive',
-          onPress: () => {
-            auth.signOut()
-              .then(() => navigation.replace('Login'))
-              .catch(err => console.error(err));
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              const navegacionPrincipal = navigation.getParent()?.getParent();
+              if (!navegacionPrincipal) {
+                throw new Error('No se encontró la pantalla principal para volver al inicio de sesión.');
+              }
+              navegacionPrincipal.replace('Login');
+            } catch (error) {
+              console.error('Error al cerrar sesión: ', error);
+              Alert.alert('Error', 'No se pudo cerrar la sesión.');
+            }
           },
         },
       ],
@@ -167,9 +178,11 @@ const handleCerrarSesion = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0B2E59" />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0B2E59" />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -186,25 +199,17 @@ const handleCerrarSesion = () => {
   }));
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.pageSubtitle}>Administra tu cuenta y tus direcciones</Text>
-
-      <View style={styles.profileCard}>
-        <View style={styles.profileTopRow}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={34} color="#0B2E59" />
-          </View>
-          <View style={styles.badgeActive}>
-            <Ionicons name="checkmark-circle" size={14} color="#A8E6B0" />
-            <Text style={styles.badgeText}>Cuenta activa</Text>
-          </View>
-        </View>
-        <Text style={styles.userName}>{nombreMostrar || 'Cliente Ferretería'}</Text>
-        <View style={styles.profileEmailRow}>
-          <Ionicons name="mail-outline" size={16} color="#C8D8EB" />
-          <Text style={styles.userEmail}>{usuarioData?.correo || auth.currentUser?.email || 'Correo no disponible'}</Text>
-        </View>
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <EncabezadoPerfil
+          saludo="¡Bienvenido!"
+          nombre={nombreMostrar || 'Cliente Ferretería'}
+          descripcion="Nos alegra tenerte aquí"
+          correo={usuarioData?.correo || auth.currentUser?.email || 'Correo no disponible'}
+          estadoCuenta="Cuenta activa"
+          onCerrarSesion={handleCerrarSesion}
+        />
+        <Text style={styles.pageSubtitle}>Administra tu cuenta y tus direcciones</Text>
 
       {/* SECCIÓN DE DIRECCIONES */}
       <View style={styles.cardSection}>
@@ -284,7 +289,7 @@ const handleCerrarSesion = () => {
       {/* OPCIONES DE CONFIGURACIÓN */}
       <View style={styles.cardSection}>
         <View style={styles.settingsHeading}>
-          <Ionicons name="settings-outline" size={18} color="#0B2E59" />
+          <Ionicons name="settings-outline" size={18} color="#0B2E59" style={styles.settingsIcon} />
           <Text style={styles.sectionTitle}>Configuración</Text>
         </View>
         <View style={styles.menuRow}>
@@ -303,13 +308,6 @@ const handleCerrarSesion = () => {
           <Ionicons name="chevron-forward" size={18} color="#aaa" />
         </View>
 
-        <TouchableOpacity style={styles.menuRow} onPress={handleCerrarSesion}>
-          <View style={[styles.menuIcon, styles.menuIconBlue]}>
-            <Ionicons name="log-out-outline" size={18} color="#0B2E59" />
-          </View>
-          <Text style={styles.menuText}>Cerrar sesión</Text>
-          <Ionicons name="chevron-forward" size={18} color="#aaa" />
-        </TouchableOpacity>
       </View>
 
       {/* MODAL PARA AGREGAR O EDITAR DIRECCIÓN */}
@@ -377,14 +375,18 @@ const handleCerrarSesion = () => {
         </View>
       </Modal>
 
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F6F9',
+    backgroundColor: '#EAF2FB',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     padding: 16,
@@ -399,66 +401,7 @@ const styles = StyleSheet.create({
     color: '#738198',
     fontSize: 14,
     marginBottom: 18,
-    marginTop: 4,
-  },
-  profileCard: {
-    backgroundColor: '#0B2E59',
-    borderRadius: 20,
-    marginBottom: 16,
-    padding: 20,
-    elevation: 4,
-    shadowColor: '#0B2E59',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-  },
-  profileTopRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D5E4F4',
-    borderRadius: 34,
-    borderWidth: 3,
-    height: 68,
-    justifyContent: 'center',
-    width: 68,
-  },
-  userName: {
-    color: '#FFFFFF',
-    fontSize: 21,
-    fontWeight: '800',
-  },
-  userEmail: {
-    color: '#D7E4F2',
-    flex: 1,
-    fontSize: 13,
-    marginLeft: 7,
-  },
-  profileEmailRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginTop: 7,
-  },
-  badgeActive: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 4,
+    marginTop: 0,
   },
   cardSection: {
     backgroundColor: '#FFF',
@@ -629,6 +572,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     marginBottom: 2,
+  },
+  settingsIcon: {
+    marginRight: 10,
   },
   menuIcon: {
     alignItems: 'center',

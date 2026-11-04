@@ -9,12 +9,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, orderBy, query, updateDoc, doc } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
 
 const ESTADOS_PEDIDO = ['Pendiente', 'En preparación', 'En camino', 'Entregado'];
+
+const obtenerImagen = (producto) => (
+  [producto?.imagen, producto?.Imagen]
+    .find((imagen) => typeof imagen === 'string' && imagen.trim())
+    ?.trim() || ''
+);
 
 const obtenerDireccion = (direccion) => {
   if (!direccion) return 'Dirección no disponible';
@@ -53,12 +60,50 @@ export default function AdminPedidos() {
       collection(db, 'pedidos'),
       orderBy('fecha', 'desc')
     );
+    let activo = true;
+    let versionSnapshot = 0;
+    const imagenesProductos = new Map();
 
-    return onSnapshot(pedidosQuery, (snapshot) => {
-      setPedidos(snapshot.docs.map((pedidoDoc) => ({
+    const unsubscribe = onSnapshot(pedidosQuery, async (snapshot) => {
+      const versionActual = ++versionSnapshot;
+      const pedidosCargados = snapshot.docs.map((pedidoDoc) => ({
         id: pedidoDoc.id,
         ...pedidoDoc.data(),
+      }));
+      const idsProductosSinImagen = new Set(
+        pedidosCargados.flatMap((pedido) => (
+          Array.isArray(pedido.productos) ? pedido.productos : []
+        ))
+          .filter((producto) => !obtenerImagen(producto) && producto.id)
+          .map((producto) => String(producto.id))
+      );
+
+      await Promise.all([...idsProductosSinImagen].map(async (productoId) => {
+        if (!imagenesProductos.has(productoId)) {
+          imagenesProductos.set(productoId, getDoc(doc(db, 'productos', productoId))
+            .then((productoSnapshot) => (
+              productoSnapshot.exists() ? obtenerImagen(productoSnapshot.data()) : ''
+            ))
+            .catch((imagenError) => {
+              console.error(`Error al recuperar la imagen del producto ${productoId}:`, imagenError);
+              return '';
+            }));
+        }
+      }));
+
+      const pedidosConImagenes = await Promise.all(pedidosCargados.map(async (pedido) => ({
+        ...pedido,
+        productos: await Promise.all(
+          (Array.isArray(pedido.productos) ? pedido.productos : []).map(async (producto) => ({
+            ...producto,
+            imagen: obtenerImagen(producto)
+              || (producto.id ? await imagenesProductos.get(String(producto.id)) : ''),
+          }))
+        ),
       })));
+
+      if (!activo || versionActual !== versionSnapshot) return;
+      setPedidos(pedidosConImagenes);
       setCargando(false);
       setError(false);
     }, (snapshotError) => {
@@ -66,6 +111,10 @@ export default function AdminPedidos() {
       setCargando(false);
       setError(true);
     });
+    return () => {
+      activo = false;
+      unsubscribe();
+    };
   }, []);
 
   const actualizarEstado = async (pedido, estado) => {
@@ -108,8 +157,8 @@ export default function AdminPedidos() {
 
         {productos.map((producto, index) => (
           <View key={producto.id || `${item.id}-${index}`} style={styles.productoFila}>
-            {producto.imagen ? (
-              <Image source={{ uri: producto.imagen }} style={styles.imagen} resizeMode="contain" />
+            {obtenerImagen(producto) ? (
+              <Image source={{ uri: obtenerImagen(producto) }} style={styles.imagen} resizeMode="contain" />
             ) : (
               <View style={[styles.imagen, styles.sinImagen]}>
                 <Ionicons name="image-outline" size={22} color="#99A2AE" />
@@ -163,23 +212,27 @@ export default function AdminPedidos() {
 
   if (cargando) {
     return (
-      <View style={styles.estadoPantalla}>
-        <ActivityIndicator size="large" color="#0B2E59" />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.estadoPantalla}>
+          <ActivityIndicator size="large" color="#0B2E59" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.estadoPantalla}>
-        <Ionicons name="alert-circle-outline" size={54} color="#D32F2F" />
-        <Text style={styles.textoVacio}>No se pudieron cargar los pedidos.</Text>
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.estadoPantalla}>
+          <Ionicons name="alert-circle-outline" size={54} color="#D32F2F" />
+          <Text style={styles.textoVacio}>No se pudieron cargar los pedidos.</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
         data={pedidos}
         keyExtractor={(item) => item.id}
@@ -243,7 +296,7 @@ export default function AdminPedidos() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

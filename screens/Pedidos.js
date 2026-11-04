@@ -10,9 +10,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
+
+const obtenerImagen = (producto) => (
+  [producto?.imagen, producto?.Imagen]
+    .find((imagen) => typeof imagen === 'string' && imagen.trim())
+    ?.trim() || ''
+);
 
 const obtenerDireccion = (direccion) => {
   if (!direccion) return 'Dirección no disponible';
@@ -67,8 +73,12 @@ export default function Pedidos() {
       collection(db, 'pedidos'),
       where('usuarioId', '==', usuarioId)
     );
+    let activo = true;
+    let versionSnapshot = 0;
+    const imagenesProductos = new Map();
 
-    return onSnapshot(consultaPedidos, (snapshot) => {
+    const unsubscribe = onSnapshot(consultaPedidos, async (snapshot) => {
+      const versionActual = ++versionSnapshot;
       const pedidosUsuario = snapshot.docs
         .map((pedidoDoc) => ({ id: pedidoDoc.id, ...pedidoDoc.data() }))
         .sort((a, b) => {
@@ -76,13 +86,53 @@ export default function Pedidos() {
           const fechaB = b.fecha?.toMillis?.() || 0;
           return fechaB - fechaA;
         });
-      setPedidos(pedidosUsuario);
+
+      const idsProductosSinImagen = new Set(
+        pedidosUsuario.flatMap((pedido) => (
+          Array.isArray(pedido.productos) ? pedido.productos : []
+        ))
+          .filter((producto) => !obtenerImagen(producto) && producto.id)
+          .map((producto) => String(producto.id))
+      );
+      await Promise.all([...idsProductosSinImagen].map(async (productoId) => {
+        if (!imagenesProductos.has(productoId)) {
+          imagenesProductos.set(productoId, getDoc(doc(db, 'productos', productoId))
+            .then((productoSnapshot) => {
+              const datos = productoSnapshot.exists() ? productoSnapshot.data() : {};
+              return typeof (datos.imagen || datos.Imagen) === 'string'
+                ? (datos.imagen || datos.Imagen).trim()
+                : '';
+            })
+            .catch((imagenError) => {
+              console.error(`Error al recuperar la imagen del producto ${productoId}:`, imagenError);
+              return '';
+            }));
+        }
+      }));
+
+      const productosConImagen = await Promise.all(pedidosUsuario.map(async (pedido) => ({
+        ...pedido,
+        productos: await Promise.all(
+          (Array.isArray(pedido.productos) ? pedido.productos : []).map(async (producto) => ({
+            ...producto,
+            imagen: obtenerImagen(producto)
+              || (producto.id ? await imagenesProductos.get(String(producto.id)) : ''),
+          }))
+        ),
+      })));
+
+      if (!activo || versionActual !== versionSnapshot) return;
+      setPedidos(productosConImagen);
       setCargando(false);
     }, (snapshotError) => {
       console.error('Error al cargar el historial de pedidos: ', snapshotError);
       setError(true);
       setCargando(false);
     });
+    return () => {
+      activo = false;
+      unsubscribe();
+    };
   }, [usuarioId]);
 
   const marcarPedido = async (pedido, confirmacion) => {

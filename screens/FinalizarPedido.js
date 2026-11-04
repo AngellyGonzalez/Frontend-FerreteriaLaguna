@@ -98,7 +98,7 @@ export default function FinalizarPedido({ route, navigation }) {
       const productosPedido = productosCarrito.map((producto) => ({
         id: String(producto.id),
         nombre: producto.nombre || 'Producto',
-        imagen: producto.imagen || '',
+        imagen: producto.imagen || producto.Imagen || '',
         precio: Number(producto.precio) || 0,
         cantidad: Math.max(1, Math.floor(Number(producto.cantidad) || 1)),
       }));
