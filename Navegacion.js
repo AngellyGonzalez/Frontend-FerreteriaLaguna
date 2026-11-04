@@ -14,6 +14,7 @@ import Pedidos from './screens/Pedidos';
 import Perfil from './screens/Perfil';
 import FinalizarPedido from './screens/FinalizarPedido';
 import VistaAdmin from './screens/VistaAdmin';           
+import DashboardAdmin from './screens/DashboardAdmin';
 import AdminPedidos from './screens/AdminPedidos';
 import PerfilAdmin from './screens/PerfilAdmin';
 import NuevoProductoScreen from './screens/nuevoProducto';
@@ -30,6 +31,16 @@ function AdminStack() {
         tabBarInactiveTintColor: '#888',
       }}
     >
+      <Tab.Screen
+        name="DashboardAdmin"
+        component={DashboardAdmin}
+        options={{
+          title: 'Estadísticas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="AdminPedidos"
         component={AdminPedidos}
