@@ -778,6 +778,7 @@ const styles = StyleSheet.create({
   },
   contenido: {
     padding: 20,
+    paddingTop: 0,
     paddingBottom: 32,
   },
   cargando: {

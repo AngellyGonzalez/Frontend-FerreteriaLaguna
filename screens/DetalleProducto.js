@@ -218,8 +218,11 @@ export default function DetalleProducto({ route, navigation }) {
     navigation.navigate('HomeTabs', {
       screen: 'CarritoTab',
       params: {
-        productoAgregado: productoParaCarrito,
-        keyTimestamp: Date.now(),
+        screen: 'Carrito',
+        params: {
+          productoAgregado: productoParaCarrito,
+          keyTimestamp: Date.now(),
+        },
       },
     });
   };

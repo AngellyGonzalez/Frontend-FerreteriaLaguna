@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack"; 
 import { Ionicons } from "@expo/vector-icons"; 
 import { AppAlertProvider } from './components/AppAlert';
+import LogoMarca from './components/LogoMarca';
 
 
 import Registro from "./screens/Registro"; 
@@ -78,16 +79,16 @@ function AdminStack() {
 // STACK DEL CATÁLOGO 
 function CatalogoStack() { 
   return ( 
-    <Stack.Navigator> 
+    <Stack.Navigator screenOptions={{ headerRight: () => <LogoMarca size={38} /> }}>
       <Stack.Screen 
         name="Catalogo" 
         component={Catalogo} 
-        options={{ title: "Catálogo" }} 
+        options={{ title: 'Todo para tus proyectos', headerShown: false }}
       /> 
       <Stack.Screen 
         name="DetalleProducto" // <--- Cámbialo aquí para que coincida
         component={DetalleProducto} 
-        options={{ title: "Detalle del producto" }} 
+        options={{ title: 'Detalle del producto' }}
       /> 
     </Stack.Navigator> 
   ); 
@@ -95,7 +96,7 @@ function CatalogoStack() {
 
 function CarritoStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerRight: () => <LogoMarca size={38} /> }}>
       <Stack.Screen
         name="Carrito"
         component={Carrito}
@@ -111,7 +112,7 @@ function PedidosStack() {
       <Stack.Screen
         name="Pedidos"
         component={Pedidos}
-        options={{ title: 'Mis Pedidos' }}
+        options={{ title: 'Mis pedidos', headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -200,14 +201,30 @@ export default function Navegacion() {
           <Stack.Screen name="Login" component={Login} />
 
           {/* Pantalla de Registro */}
-          <Stack.Screen name="Registro" component={Registro} options={{ headerShown: true, title: "Crear Cuenta" }} />
+          <Stack.Screen
+            name="Registro"
+            component={Registro}
+            options={{
+              headerShown: true,
+              title: 'Crear Cuenta',
+              headerRight: () => <LogoMarca size={38} />,
+            }}
+          />
 
           {/* Pantalla Principal con Pestañas */}
           <Stack.Screen name="HomeTabs" component={HomeTabs} />
 
           {/* PANTALLAS DE ADMINISTRACIÓN */}
           <Stack.Screen name="PanelAdmin" component={AdminStack} options={{ headerShown: false }} />
-          <Stack.Screen name="nuevoProducto" component={NuevoProductoScreen} options={{ headerShown: true, title: "Gestión de Producto" }} />
+          <Stack.Screen
+            name="nuevoProducto"
+            component={NuevoProductoScreen}
+            options={{
+              headerShown: true,
+              title: 'Gestión de Producto',
+              headerRight: () => <LogoMarca size={38} />,
+            }}
+          />
 
           <Stack.Screen
             name="FinalizarPedido"

@@ -1,10 +1,15 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-export default function Categoria({ nombre, onPress }) {
+export default function Categoria({ nombre, onPress, activa = true }) {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Text style={styles.texto}>{nombre}</Text>
+    <TouchableOpacity
+      style={[styles.container, !activa && styles.containerInactiva]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: activa }}
+    >
+      <Text style={[styles.texto, !activa && styles.textoInactivo]}>{nombre}</Text>
     </TouchableOpacity>
   );
 }
@@ -21,9 +26,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  containerInactiva: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE6F1',
+  },
   texto: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFF',
+  },
+  textoInactivo: {
+    color: '#0B2E59',
   },
 });

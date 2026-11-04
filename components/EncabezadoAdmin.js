@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import LogoMarca from './LogoMarca';
 
-export default function EncabezadoAdmin({ titulo, subtitulo, icono }) {
+export default function EncabezadoAdmin({ titulo, subtitulo }) {
   return (
     <View style={styles.encabezado}>
       <View style={styles.textos}>
@@ -10,9 +10,7 @@ export default function EncabezadoAdmin({ titulo, subtitulo, icono }) {
         <Text style={styles.titulo}>{titulo}</Text>
         <Text style={styles.subtitulo}>{subtitulo}</Text>
       </View>
-      <View style={styles.icono}>
-        <Ionicons name={icono} size={25} color="#FFFFFF" />
-      </View>
+      <LogoMarca size={48} />
     </View>
   );
 }
@@ -43,14 +41,5 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 14,
     marginTop: 3,
-  },
-  icono: {
-    alignItems: 'center',
-    backgroundColor: '#0B2E59',
-    borderRadius: 18,
-    height: 54,
-    justifyContent: 'center',
-    marginLeft: 12,
-    width: 54,
   },
 });

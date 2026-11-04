@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
 import { db } from "../firebase/config";
 import Categoria from "../components/Categoria";
 import Producto from "../components/Producto";
+import EncabezadoCliente from "../components/EncabezadoCliente";
 
 const Catalogo = ({ navigation }) => {
   const [categorias, setCategorias] = useState([]);
@@ -79,47 +81,56 @@ const Catalogo = ({ navigation }) => {
   });
 
   return (
-    <ScrollView style={styles.contenedor} showsVerticalScrollIndicator={false}>
-      {/* Barra de Búsqueda */}
-      <View style={styles.buscador}>
-        <Ionicons name="search-outline" size={18} color="#0B2E59" />
-        <TextInput
-          placeholder="Buscar herramientas, cemento, tornillos..."
-          placeholderTextColor="#A0A0A0"
-          style={styles.input}
-          value={busqueda}
-          onChangeText={setBusqueda}
-        />
-      </View>
-
-      {/* Categorías Horizontal */}
-      <Text style={styles.subtituloSeccion}>Categorías</Text>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categorias}
+        style={styles.contenedor}
+        contentContainerStyle={styles.contenido}
+        showsVerticalScrollIndicator={false}
       >
-        {categorias.map((categoria) => (
-          <Categoria
-            key={categoria.id} 
-            nombre={categoria.nombre_categoria || categoria.nombre || "Todos"} 
-            onPress={() => {
-              if (categoria.id === "todos") {
-                obtenerProductos(); 
-              } else {
-                obtenerProductosPorCategoria(categoria.id); 
-              }
-            }}
+        <EncabezadoCliente
+          titulo="Todo para tus proyectos"
+          subtitulo="Herramientas y materiales en un solo lugar"
+        />
+        {/* Barra de Búsqueda */}
+        <View style={styles.buscador}>
+          <Ionicons name="search-outline" size={18} color="#0B2E59" />
+          <TextInput
+            placeholder="Buscar herramientas, cemento, tornillos..."
+            placeholderTextColor="#A0A0A0"
+            style={styles.input}
+            value={busqueda}
+            onChangeText={setBusqueda}
           />
-        ))}
-      </ScrollView>
+        </View>
 
-      <View style={styles.linea} />
-      <Text style={styles.titulo}>Productos Destacados</Text>
+        {/* Categorías Horizontal */}
+        <Text style={styles.subtituloSeccion}>Categorías</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categorias}
+        >
+          {categorias.map((categoria) => (
+            <Categoria
+              key={categoria.id}
+              nombre={categoria.nombre_categoria || categoria.nombre || "Todos"}
+              onPress={() => {
+                if (categoria.id === "todos") {
+                  obtenerProductos();
+                } else {
+                  obtenerProductosPorCategoria(categoria.id);
+                }
+              }}
+            />
+          ))}
+        </ScrollView>
 
-      {/* Cuadrícula de Productos */}
-      <View style={styles.productosContainer}>
-        <FlatList
+        <View style={styles.linea} />
+        <Text style={styles.titulo}>Productos Destacados</Text>
+
+        {/* Cuadrícula de Productos */}
+        <View style={styles.productosContainer}>
+          <FlatList
           data={productosFiltrados}
           scrollEnabled={false}
           renderItem={({ item }) => {
@@ -151,17 +162,25 @@ const Catalogo = ({ navigation }) => {
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
           columnWrapperStyle={styles.columnas}
-        />
-      </View>
-    </ScrollView>
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: '#F5F7FA',
+    flex: 1,
+  },
   contenedor: {
-    flex: 1, 
-    backgroundColor: '#F5F7FA', 
-    padding: 16
+    flex: 1,
+  },
+  contenido: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
   },
   buscador: {
     flexDirection: 'row', 

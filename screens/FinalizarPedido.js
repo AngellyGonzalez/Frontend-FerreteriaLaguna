@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import LogoMarca from '../components/LogoMarca';
 import { collection, doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
@@ -201,6 +202,7 @@ export default function FinalizarPedido({ route, navigation }) {
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Finalizar Pedido</Text>
+        <LogoMarca size={40} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -426,8 +428,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#333',
+    flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
+    marginLeft: 12,
   },
   input: {
     backgroundColor: '#F9F9F9',

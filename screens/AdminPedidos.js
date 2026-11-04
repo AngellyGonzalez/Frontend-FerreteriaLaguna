@@ -218,7 +218,6 @@ export default function AdminPedidos() {
           <EncabezadoAdmin
             titulo="Pedidos"
             subtitulo="Gestiona los pedidos de tus clientes"
-            icono="receipt-outline"
           />
           <View style={styles.estadoPantalla}>
             <ActivityIndicator size="large" color="#0B2E59" />
@@ -235,7 +234,6 @@ export default function AdminPedidos() {
           <EncabezadoAdmin
             titulo="Pedidos"
             subtitulo="Gestiona los pedidos de tus clientes"
-            icono="receipt-outline"
           />
           <View style={styles.estadoPantalla}>
             <Ionicons name="alert-circle-outline" size={54} color="#D32F2F" />
@@ -257,7 +255,6 @@ export default function AdminPedidos() {
           <EncabezadoAdmin
             titulo="Pedidos"
             subtitulo={`Gestiona los pedidos de tus clientes · Total: ${pedidos.length}`}
-            icono="receipt-outline"
           />
         }
         ListEmptyComponent={

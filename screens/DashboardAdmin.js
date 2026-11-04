@@ -321,7 +321,6 @@ export default function DashboardAdmin() {
         <EncabezadoAdmin
           titulo="Estadísticas"
           subtitulo="Resumen de ventas y pedidos"
-          icono="analytics-outline"
         />
 
         {error && (

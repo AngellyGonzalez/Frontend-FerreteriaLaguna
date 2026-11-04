@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import LogoMarca from './LogoMarca';
 
 export default function EncabezadoPerfil({
   saludo,
@@ -16,14 +17,17 @@ export default function EncabezadoPerfil({
           <Text style={styles.etiqueta}>TU ESPACIO PERSONAL</Text>
           <Text style={styles.titulo}>Mi perfil</Text>
         </View>
-        <TouchableOpacity
-          style={styles.botonCerrarSesion}
-          onPress={onCerrarSesion}
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sesión"
-        >
-          <Ionicons name="log-out-outline" size={27} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.accionesEncabezado}>
+          <TouchableOpacity
+            style={styles.botonCerrarSesion}
+            onPress={onCerrarSesion}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar sesión"
+          >
+            <Ionicons name="log-out-outline" size={27} color="#FFFFFF" />
+          </TouchableOpacity>
+          <LogoMarca size={48} />
+        </View>
       </View>
 
       <View style={styles.tarjetaPerfil}>
@@ -58,9 +62,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 24,
+    marginTop: 18,
   },
   titulos: {
     flex: 1,
+  },
+  accionesEncabezado: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginLeft: 12,
   },
   etiqueta: {
     color: '#75869A',

@@ -8,11 +8,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDoc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { useAppAlert } from '../components/AppAlert';
+import EncabezadoCliente from '../components/EncabezadoCliente';
 
 const obtenerImagen = (producto) => (
   [producto?.imagen, producto?.Imagen]
@@ -155,40 +157,61 @@ export default function Pedidos() {
 
   if (cargando) {
     return (
-      <View style={styles.estadoPantalla}>
-        <ActivityIndicator size="large" color="#0B2E59" />
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contenido}>
+          <EncabezadoCliente
+            titulo="Mis pedidos"
+            subtitulo="Consulta el estado de tus compras"
+          />
+          <View style={styles.estadoPantalla}>
+            <ActivityIndicator size="large" color="#0B2E59" />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   if (!usuarioId) {
     return (
-      <View style={styles.estadoPantalla}>
-        <Ionicons name="person-circle-outline" size={64} color="#B0B7C3" />
-        <Text style={styles.textoVacio}>Inicia sesión para consultar tus pedidos.</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contenido}>
+          <EncabezadoCliente
+            titulo="Mis pedidos"
+            subtitulo="Consulta el estado de tus compras"
+          />
+          <View style={styles.estadoPantalla}>
+            <Ionicons name="person-circle-outline" size={64} color="#B0B7C3" />
+            <Text style={styles.textoVacio}>Inicia sesión para consultar tus pedidos.</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.estadoPantalla}>
-        <Ionicons name="alert-circle-outline" size={56} color="#D32F2F" />
-        <Text style={styles.textoVacio}>No se pudo cargar el historial de pedidos.</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contenido}>
+          <EncabezadoCliente
+            titulo="Mis pedidos"
+            subtitulo="Consulta el estado de tus compras"
+          />
+          <View style={styles.estadoPantalla}>
+            <Ionicons name="alert-circle-outline" size={56} color="#D32F2F" />
+            <Text style={styles.textoVacio}>No se pudo cargar el historial de pedidos.</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contenido}>
-      <View style={styles.encabezado}>
-        <View>
-          <Text style={styles.subtitulo}>Historial de tus compras</Text>
-        </View>
-        <View style={styles.contadorPedidos}>
-          <Text style={styles.contadorTexto}>{pedidos.length}</Text>
-        </View>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.contenido}>
+        <EncabezadoCliente
+          titulo="Mis pedidos"
+          subtitulo={`Historial de compras · ${pedidos.length} pedidos`}
+        />
 
       {pedidos.length === 0 ? (
         <View style={styles.tarjetaVacia}>
@@ -302,17 +325,23 @@ export default function Pedidos() {
           );
         })
       )}
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: '#F4F6F9',
+    flex: 1,
+  },
   container: {
     backgroundColor: '#F4F6F9',
     flex: 1,
   },
   contenido: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
   },
   estadoPantalla: {
@@ -321,31 +350,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 24,
-  },
-  encabezado: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  subtitulo: {
-    color: '#77808E',
-    fontSize: 13,
-    marginTop: 3,
-  },
-  contadorPedidos: {
-    alignItems: 'center',
-    backgroundColor: '#E7F1FC',
-    borderRadius: 18,
-    height: 36,
-    justifyContent: 'center',
-    minWidth: 36,
-    paddingHorizontal: 8,
-  },
-  contadorTexto: {
-    color: '#0B2E59',
-    fontSize: 15,
-    fontWeight: 'bold',
   },
   tarjetaVacia: {
     alignItems: 'center',
